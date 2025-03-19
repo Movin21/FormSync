@@ -6,26 +6,28 @@ WORKDIR /workspace
 # Shared tsconfig — services extend ../../config/tsconfig.base.json
 COPY config/ config/
 
-# Install dependencies first (cache layer)
-COPY services/formgen-service/package*.json services/formgen-service/
+COPY packages/formgen-shared ./packages/formgen-shared
+WORKDIR /workspace/packages/formgen-shared
+RUN npm install && npm run build
+
 WORKDIR /workspace/services/formgen-service
+COPY services/formgen-service/package*.json ./
 RUN npm install
 
-# Copy source and build
 COPY services/formgen-service/ .
 RUN npm run build
 
 # ── Runtime stage ──────────────────────────────────────────────
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /workspace/services/formgen-service
 
-# Compiled output
-COPY --from=builder /workspace/services/formgen-service/dist ./dist
+COPY --from=builder /workspace/packages/formgen-shared /workspace/packages/formgen-shared
 
-# Production dependencies only
 COPY services/formgen-service/package*.json ./
 RUN npm install --omit=dev
+
+COPY --from=builder /workspace/services/formgen-service/dist ./dist
 
 EXPOSE 3014
 
