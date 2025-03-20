@@ -21,11 +21,17 @@ export function buildReactWiredSubmitReplacement(
       const API_PATH = import.meta.env.VITE_API_PATH || "${apiPathEscaped}";
       const FIELD_TYPES: Record<string, string> = ${opts.serializedFieldTypes};
 
+      const templatePathFromIndexedPath = (path: string) =>
+        path.split(".").filter((p) => !/^\\d+$/.test(p)).join(".");
+
+      const resolveFieldType = (path: string): string | undefined =>
+        FIELD_TYPES[path] ?? FIELD_TYPES[templatePathFromIndexedPath(path)];
+
       const setDeepValue = (target: Record<string, any>, path: string, value: any) => {
         const parts = path.split(".");
         let current: Record<string, any> = target;
         for (let i = 0; i < parts.length - 1; i++) {
-          const segment = parts[i];
+          const segment = parts[i]!;
           if (
             typeof current[segment] !== "object" ||
             current[segment] === null ||
@@ -35,7 +41,7 @@ export function buildReactWiredSubmitReplacement(
           }
           current = current[segment];
         }
-        current[parts[parts.length - 1]] = value;
+        current[parts[parts.length - 1]!] = value;
       };
 
       const coerceValue = (fieldType: string | undefined, rawValue: FormDataEntryValue) => {
@@ -52,6 +58,24 @@ export function buildReactWiredSubmitReplacement(
         return rawValue;
       };
 
+      const numericKeysToArrays = (value: unknown): unknown => {
+        if (value === null || typeof value !== "object") return value;
+        if (Array.isArray(value)) return value.map(numericKeysToArrays);
+        const obj = value as Record<string, unknown>;
+        const keys = Object.keys(obj);
+        const allNumeric =
+          keys.length > 0 && keys.every((k) => /^\\d+$/.test(k));
+        if (allNumeric) {
+          const sorted = keys.sort((a, b) => Number(a) - Number(b));
+          return sorted.map((k) => numericKeysToArrays(obj[k]));
+        }
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          out[k] = numericKeysToArrays(v);
+        }
+        return out;
+      };
+
       const stripEmptyJsonValues = (value: unknown): unknown => {
         if (value === "" || value === null || value === undefined) return undefined;
         if (typeof value !== "object") return value;
@@ -60,9 +84,9 @@ export function buildReactWiredSubmitReplacement(
             .map(stripEmptyJsonValues)
             .filter((v) => v !== undefined);
         }
-        const obj = value as Record<string, unknown>;
+        const o = value as Record<string, unknown>;
         const out: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(obj)) {
+        for (const [k, v] of Object.entries(o)) {
           const s = stripEmptyJsonValues(v);
           if (s === undefined) continue;
           if (
@@ -78,12 +102,44 @@ export function buildReactWiredSubmitReplacement(
         return out;
       };
 
+      const readAsDataURL = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(typeof r.result === "string" ? r.result : "");
+          r.onerror = () => reject(r.error);
+          r.readAsDataURL(file);
+        });
+
+      const embedFileInputsAsBase64 = async (
+        form: HTMLFormElement,
+        payload: Record<string, any>,
+      ) => {
+        const inputs = form.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
+        for (const input of inputs) {
+          const name = input.name;
+          const ft = resolveFieldType(name);
+          if (ft !== "file") continue;
+          const files = input.files;
+          if (!files || files.length === 0) {
+            setDeepValue(payload, name, undefined);
+            continue;
+          }
+          if (input.multiple) {
+            const urls = await Promise.all(Array.from(files).map((f) => readAsDataURL(f)));
+            setDeepValue(payload, name, urls);
+          } else {
+            setDeepValue(payload, name, await readAsDataURL(files[0]!));
+          }
+        }
+      };
+
       const toPayload = (form: HTMLFormElement) => {
         const payload: Record<string, any> = {};
         const formData = new FormData(form);
 
         for (const [key, value] of formData.entries()) {
-          setDeepValue(payload, key, coerceValue(FIELD_TYPES[key], value));
+          if (value instanceof File) continue;
+          setDeepValue(payload, key, coerceValue(resolveFieldType(key), value));
         }
 
         const checkboxes = Array.from(
@@ -99,7 +155,9 @@ export function buildReactWiredSubmitReplacement(
       };
 
       const payload = toPayload(e.currentTarget);
-      const jsonBody = stripEmptyJsonValues(payload);
+      await embedFileInputsAsBase64(e.currentTarget, payload);
+      const withArrays = numericKeysToArrays(payload);
+      const jsonBody = stripEmptyJsonValues(withArrays);
       const response = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
