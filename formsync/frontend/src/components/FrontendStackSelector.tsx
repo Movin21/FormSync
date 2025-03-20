@@ -28,7 +28,7 @@ const options: {
   {
     id: "react",
     label: "React (Vite)",
-    description: "SPA · TypeScript · component preview",
+    description: "SPA · TypeScript · exports all builder field types (files as Base64-in-JSON)",
     icon: Code2,
     color: "from-purple-500 to-blue-600",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
@@ -39,7 +39,7 @@ const options: {
   {
     id: "htmlBootstrap",
     label: "HTML + Bootstrap",
-    description: "Static files · no build step · vanilla JS",
+    description: "Static files · no build · same palette (repeaters, files, calculated, etc.)",
     icon: LayoutTemplate,
     color: "from-amber-500 to-orange-600",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
