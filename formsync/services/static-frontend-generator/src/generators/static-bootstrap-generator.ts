@@ -1,6 +1,6 @@
 /**
  * Static HTML + Bootstrap 5 + vanilla JS from FormModel.
- * Field markup aligned with react-generator semantics.
+ * Field markup aligned with react-generator semantics (palette parity).
  */
 
 import { buildVanillaWiredSubmitReplacement } from "@formsync/formgen-shared";
@@ -29,6 +29,11 @@ export interface StaticGeneratorWiring {
   apiPath: string;
 }
 
+export interface RepeaterCtx {
+  repeaterRoot: string;
+  rowIdx: number;
+}
+
 function escapeHtml(text: string): string {
   const map: Record<string, string> = {
     "&": "&amp;",
@@ -40,10 +45,27 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
+function relativeUnderRepeater(repeaterRoot: string, fieldKey: string): string {
+  if (fieldKey.startsWith(repeaterRoot + ".")) return fieldKey.slice(repeaterRoot.length + 1);
+  return fieldKey;
+}
+
+/** Indexed name for repeater rows (matches React export). */
+function indexedName(repeaterRoot: string, field: FieldModel, rowIdx: number): string {
+  const rel = relativeUnderRepeater(repeaterRoot, field.key);
+  return `${repeaterRoot}.${rowIdx}.${rel}`;
+}
+
+function domIdFor(field: FieldModel, domIdByKey: Map<string, string>, ctx?: RepeaterCtx): string {
+  const base = domIdByKey.get(field.key) ?? field.id;
+  if (!ctx) return base;
+  return `${base}_r${ctx.rowIdx}`;
+}
+
 function collectAllFields(fields: FieldModel[]): FieldModel[] {
   const result: FieldModel[] = [];
   for (const f of fields) {
-    if (f.type === "group" && f.children && f.children.length > 0) {
+    if ((f.type === "group" || f.type === "repeater") && f.children?.length) {
       result.push(...collectAllFields(f.children));
     } else {
       result.push(f);
@@ -52,18 +74,40 @@ function collectAllFields(fields: FieldModel[]): FieldModel[] {
   return result;
 }
 
-function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, string>): string {
-  const { id, key, type, label, required, ui } = field;
-  const domId = domIdByKey.get(key) ?? id;
+function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, string>, ctx?: RepeaterCtx): string {
+  const { key, type, label, required, ui } = field;
+  const nameAttr = ctx ? escapeHtml(indexedName(ctx.repeaterRoot, field, ctx.rowIdx)) : escapeHtml(key);
+  const domId = domIdFor(field, domIdByKey, ctx);
   const explicitPlaceholder = ui?.placeholder;
   const computedPlaceholder = explicitPlaceholder ?? `Enter ${label.toLowerCase()}...`;
   const placeholder = type === "date" ? "" : computedPlaceholder;
   const helpText = ui?.helpText;
   const autoComplete = AUTO_COMPLETE_MAP[key] ?? "";
 
+  if (type === "repeater") {
+    const children = field.children || [];
+    if (children.some((c) => c.type === "repeater")) {
+      return `<div class="border rounded p-3 mb-4"><p class="text-muted small mb-0">Nested repeaters are not supported in this export.</p></div>`;
+    }
+    const inner = children
+      .map((c) => generateBootstrapField(c, domIdByKey, { repeaterRoot: field.key, rowIdx: 0 }))
+      .join("\n");
+    const rootEsc = escapeHtml(field.key);
+    return `<fieldset class="border rounded p-3 mb-4" data-fs-repeater="${rootEsc}">
+  <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
+  <div class="repeater-rows">
+    <div class="repeater-row border rounded p-3 mb-2 bg-light" data-row-index="0">
+      ${inner}
+    </div>
+  </div>
+  <button type="button" class="btn btn-sm btn-outline-secondary me-2 fs-repeater-remove" style="display:none">Remove row</button>
+  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add">Add row</button>
+</fieldset>`;
+  }
+
   if (type === "group") {
     const children = field.children || [];
-    const inner = children.map((c) => generateBootstrapField(c, domIdByKey)).join("\n");
+    const inner = children.map((c) => generateBootstrapField(c, domIdByKey, ctx)).join("\n");
     return `<fieldset class="border rounded p-3 mb-4">
   <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
   ${inner}
@@ -77,12 +121,12 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
   const ariaRequired = required ? `aria-required="true"` : "";
   const autoCompleteAttr = autoComplete ? `autocomplete="${autoComplete}"` : "";
 
-  let control: string;
   switch (type) {
     case "textarea":
-      control = `<textarea
+    case "richtext":
+      return wrapControl(label, required, domId, helpText, `<textarea
           class="form-control"
-          name="${escapeHtml(key)}"
+          name="${nameAttr}"
           id="${domId}"
           rows="3"
           ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
@@ -90,13 +134,17 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaRequired}
           ${ariaDescribedBy}
           ${autoCompleteAttr}
-        ></textarea>`;
-      break;
+        ></textarea>`);
     case "select": {
       const options = field.constraints?.enum || [];
-      control = `<select
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<select
           class="form-select"
-          name="${escapeHtml(key)}"
+          name="${nameAttr}"
           id="${domId}"
           ${required ? "required" : ""}
           ${ariaRequired}
@@ -105,41 +153,152 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
         >
           <option value="">${escapeHtml(placeholder) || "Select..."}</option>
           ${options.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("\n")}
-        </select>`;
-      break;
+        </select>`,
+      );
     }
     case "checkbox":
-      control = `<input
-          class="form-check-input"
-          type="checkbox"
-          name="${escapeHtml(key)}"
-          id="${domId}"
-          value="true"
-          ${ariaRequired}
-          ${ariaDescribedBy}
-        />`;
       return `<div class="form-check mb-3">
-  ${control}
+  <input
+    class="form-check-input"
+    type="checkbox"
+    name="${nameAttr}"
+    id="${domId}"
+    value="true"
+    ${ariaRequired}
+    ${ariaDescribedBy}
+  />
   <label class="form-check-label" for="${domId}">
     ${escapeHtml(label)}${required ? ' <span class="text-danger" aria-hidden="true">*</span>' : ""}
   </label>
   ${helpText ? `<div id="${domId}-help" class="form-text">${escapeHtml(helpText)}</div>` : ""}
   <div id="${domId}-error" class="invalid-feedback d-block" role="alert"></div>
 </div>`;
-    default:
-      control = `<input
+    case "file": {
+      const xui = ui?.["x-ui"];
+      const accept = xui?.accept ? `accept="${escapeHtml(String(xui.accept))}"` : "";
+      const multiple = xui?.multiple ? "multiple" : "";
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
+          class="form-control"
+          type="file"
+          name="${nameAttr}"
+          id="${domId}"
+          ${accept}
+          ${multiple}
+          ${required ? "required" : ""}
+          ${ariaRequired}
+          ${ariaDescribedBy}
+        />`,
+      );
+    }
+    case "signature": {
+      const hidId = `${domId}_sig`;
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<canvas id="${domId}_canvas" width="400" height="160" class="border rounded bg-white mb-2" style="max-width:100%;touch-action:none" data-fs-sig-target="${escapeHtml(hidId)}"></canvas>
+        <input type="hidden" name="${nameAttr}" id="${escapeHtml(hidId)}" />`,
+      );
+    }
+    case "typeahead": {
+      const url = ui?.["x-ui"]?.asyncSource?.url ?? "";
+      const dlId = `${domId}_dl`;
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
+          class="form-control"
+          type="text"
+          name="${nameAttr}"
+          id="${domId}"
+          list="${escapeHtml(dlId)}"
+          data-typeahead-url="${escapeHtml(url)}"
+          ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
+          ${required ? "required" : ""}
+          ${ariaRequired}
+          ${ariaDescribedBy}
+        />
+        <datalist id="${escapeHtml(dlId)}"></datalist>`,
+      );
+    }
+    case "calculated": {
+      const formula = field["x-calc"] ?? "";
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
+          class="form-control"
+          type="text"
+          name="${nameAttr}"
+          id="${domId}"
+          readonly
+          data-fs-calculated="${escapeHtml(formula)}"
+          value=""
+          ${ariaRequired}
+          ${ariaDescribedBy}
+        />`,
+      );
+    }
+    case "text":
+    case "email":
+    case "password":
+    case "number":
+    case "date":
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
           class="form-control"
           type="${escapeHtml(type)}"
-          name="${escapeHtml(key)}"
+          name="${nameAttr}"
           id="${domId}"
           ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
           ${required ? "required" : ""}
           ${ariaRequired}
           ${ariaDescribedBy}
           ${autoCompleteAttr}
-        />`;
+        />`,
+      );
+    case "unknown":
+    default:
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
+          class="form-control"
+          type="text"
+          name="${nameAttr}"
+          id="${domId}"
+          ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
+          ${required ? "required" : ""}
+          ${ariaRequired}
+          ${ariaDescribedBy}
+        />`,
+      );
   }
+}
 
+function wrapControl(
+  label: string,
+  required: boolean,
+  domId: string,
+  helpText: string | undefined,
+  control: string,
+): string {
   return `<div class="mb-3">
   <label class="form-label" for="${domId}">
     ${escapeHtml(label)}${required ? ' <span class="text-danger" aria-hidden="true">*</span>' : ""}
@@ -233,6 +392,176 @@ function buildFieldIdMapJs(formModel: FormModel): string {
     .join(",\n");
 }
 
+const STATIC_RUNTIME_HELPERS = `
+  function evaluateCalcExpression(formula, values) {
+    if (!formula) return '';
+    var interpolated = formula.replace(/\\{([^}]+)\\}/g, function (_, key) {
+      var k = key.trim();
+      var val = values[k];
+      return val !== undefined && val !== null ? String(val) : '0';
+    });
+    var isArithmetic = /^[\\d\\s+\\-*/().]+$/.test(interpolated);
+    if (isArithmetic) {
+      try {
+        return Function('"use strict"; return (' + interpolated + ')')();
+      } catch (e) {
+        return interpolated;
+      }
+    }
+    return interpolated;
+  }
+
+  function formValuesStringMap(form) {
+    var fd = new FormData(form);
+    var out = {};
+    fd.forEach(function (v, k) {
+      if (typeof v === 'string') out[k] = v;
+    });
+    return out;
+  }
+
+  function updateCalculatedFields(form) {
+    var vals = formValuesStringMap(form);
+    form.querySelectorAll('input[data-fs-calculated]').forEach(function (el) {
+      var f = el.getAttribute('data-fs-calculated') || '';
+      var r = evaluateCalcExpression(f, vals);
+      el.value = typeof r === 'number' && isFinite(r) ? String(r) : String(r);
+    });
+  }
+
+  function syncSignaturePads(form) {
+    form.querySelectorAll('canvas[data-fs-sig-target]').forEach(function (canvas) {
+      var hidId = canvas.getAttribute('data-fs-sig-target');
+      if (!hidId) return;
+      var hid = document.getElementById(hidId);
+      if (hid) hid.value = canvas.toDataURL('image/png');
+    });
+  }
+
+  function wireSignatureDrawing(form) {
+    form.querySelectorAll('canvas[data-fs-sig-target]').forEach(function (canvas) {
+      canvas.addEventListener('pointerdown', function (e) {
+        var g = canvas.getContext('2d');
+        if (!g) return;
+        var rect = canvas.getBoundingClientRect();
+        var drawing = true;
+        g.beginPath();
+        g.strokeStyle = '#111';
+        g.lineWidth = 2;
+        g.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        function move(ev) {
+          if (!drawing) return;
+          g.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
+          g.stroke();
+        }
+        function up() {
+          drawing = false;
+          canvas.removeEventListener('pointermove', move);
+        }
+        canvas.setPointerCapture(e.pointerId);
+        canvas.addEventListener('pointermove', move);
+        canvas.addEventListener('pointerup', up, { once: true });
+      });
+    });
+  }
+
+  function setRepeaterRowIndex(rowEl, root, idx) {
+    var prefix = root + '.';
+    rowEl.querySelectorAll('[name]').forEach(function (el) {
+      var name = el.getAttribute('name');
+      if (!name || name.indexOf(prefix) !== 0) return;
+      var tail = name.slice(prefix.length);
+      var dot = tail.indexOf('.');
+      if (dot === -1) return;
+      var first = tail.slice(0, dot);
+      if (!/^\\d+$/.test(first)) return;
+      el.setAttribute('name', prefix + idx + tail.slice(dot));
+    });
+    rowEl.querySelectorAll('[id]').forEach(function (el) {
+      var id = el.getAttribute('id');
+      if (id) el.setAttribute('id', id.replace(/_r\\d+$/, '_r' + idx));
+    });
+    rowEl.querySelectorAll('[for]').forEach(function (el) {
+      var f = el.getAttribute('for');
+      if (f) el.setAttribute('for', f.replace(/_r\\d+$/, '_r' + idx));
+    });
+  }
+
+  function initRepeaters(form) {
+    form.querySelectorAll('[data-fs-repeater]').forEach(function (fs) {
+      var root = fs.getAttribute('data-fs-repeater');
+      if (!root) return;
+      var rowsC = fs.querySelector('.repeater-rows');
+      var template = rowsC ? rowsC.querySelector('.repeater-row') : null;
+      var addBtn = fs.querySelector('.fs-repeater-add');
+      var remBtn = fs.querySelector('.fs-repeater-remove');
+      if (!rowsC || !template || !addBtn) return;
+
+      function refreshRemoveButtons() {
+        var rows = rowsC.querySelectorAll('.repeater-row');
+        rows.forEach(function (row, i) {
+          row.setAttribute('data-row-index', String(i));
+          setRepeaterRowIndex(row, root, i);
+        });
+        if (remBtn) remBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+      }
+
+      addBtn.addEventListener('click', function () {
+        var clone = template.cloneNode(true);
+        var n = rowsC.querySelectorAll('.repeater-row').length;
+        setRepeaterRowIndex(clone, root, n);
+        rowsC.appendChild(clone);
+        wireSignatureDrawing(clone);
+        refreshRemoveButtons();
+      });
+
+      if (remBtn) {
+        remBtn.addEventListener('click', function () {
+          var rows = rowsC.querySelectorAll('.repeater-row');
+          if (rows.length <= 1) return;
+          rows[rows.length - 1].remove();
+          refreshRemoveButtons();
+        });
+      }
+
+      refreshRemoveButtons();
+    });
+  }
+
+  function initTypeaheads(form) {
+    var timers = {};
+    form.querySelectorAll('input[data-typeahead-url]').forEach(function (input) {
+      var urlTpl = input.getAttribute('data-typeahead-url') || '';
+      var listId = input.getAttribute('list');
+      if (!listId || !urlTpl) return;
+      var dl = document.getElementById(listId);
+      if (!dl) return;
+      input.addEventListener('input', function () {
+        var key = input.id || listId;
+        clearTimeout(timers[key]);
+        var q = input.value.trim();
+        timers[key] = setTimeout(function () {
+          var url = urlTpl.split('{query}').join(encodeURIComponent(q));
+          fetch(url)
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (data) {
+              var arr = Array.isArray(data) ? data : [];
+              dl.innerHTML = '';
+              arr.slice(0, 50).forEach(function (item) {
+                var opt = document.createElement('option');
+                opt.value = typeof item === 'string' ? item : (item.label || item.value || String(item));
+                dl.appendChild(opt);
+              });
+            })
+            .catch(function () {});
+        }, 300);
+      });
+    });
+  }
+`;
+
 function generateAppJs(
   formModel: FormModel,
   wiring?: StaticGeneratorWiring & { fieldTypesJson: string },
@@ -261,12 +590,23 @@ function generateAppJs(
   var form = document.getElementById("main-form");
   if (!form) return;
 
+${STATIC_RUNTIME_HELPERS}
+
+  wireSignatureDrawing(form);
+  initRepeaters(form);
+  initTypeaheads(form);
+  form.addEventListener("input", function () {
+    updateCalculatedFields(form);
+  });
+  updateCalculatedFields(form);
+
   var FIELD_ID_MAP = {
 ${fieldMapLines}
   };
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
+    syncSignaturePads(form);
     var fd = new FormData(form);
     var data = Object.fromEntries(fd.entries());
 
@@ -311,9 +651,7 @@ export function collectFieldTypeMap(formModel: FormModel): Record<string, string
   const walk = (fields: FieldModel[]) => {
     for (const field of fields) {
       map[field.key] = field.type;
-      if (field.children && field.children.length > 0) {
-        walk(field.children);
-      }
+      if (field.children?.length) walk(field.children);
     }
   };
   walk(formModel.fields);
@@ -372,6 +710,13 @@ export function generateStaticBootstrapFiles(
   const readme = `# ${escapeHtml(title)} — static form
 
 Generated HTML + Bootstrap 5 + vanilla JavaScript (no build step).
+
+## Advanced fields
+
+- **File uploads** are sent as **Base64 / data URL strings inside JSON** when wired POST is enabled. Keep files small; very large payloads may fail (browser/server limits).
+- **Rich text** is a plain \`<textarea>\` (HTML string). Add a WYSIWYG library if you need an editor.
+- **Typeahead** calls \`data-typeahead-url\` with \`{query}\` replaced; your API must allow **CORS** from this origin.
+- **Repeater** uses indexed field names (\`root.0.child\`, \`root.1.child\`, …). Use **Add row** / **Remove row** (last row removed).
 
 ## Run locally
 
