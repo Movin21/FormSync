@@ -22,6 +22,16 @@ export function buildVanillaWiredSubmitReplacement(
       var API_PATH = "${apiPathEsc}";
       var FIELD_TYPES = ${opts.serializedFieldTypes};
 
+      var templatePathFromIndexedPath = function (path) {
+        return path.split(".").filter(function (p) {
+          return !/^\\d+$/.test(p);
+        }).join(".");
+      };
+
+      var resolveFieldType = function (path) {
+        return FIELD_TYPES[path] || FIELD_TYPES[templatePathFromIndexedPath(path)];
+      };
+
       var setDeepValue = function (target, path, value) {
         var parts = path.split(".");
         var current = target;
@@ -53,6 +63,30 @@ export function buildVanillaWiredSubmitReplacement(
         return rawValue;
       };
 
+      var numericKeysToArrays = function (value) {
+        if (value === null || typeof value !== "object") return value;
+        if (Array.isArray(value)) return value.map(numericKeysToArrays);
+        var keys = Object.keys(value);
+        var allNumeric = keys.length > 0 && keys.every(function (k) {
+          return /^\\d+$/.test(k);
+        });
+        if (allNumeric) {
+          return keys
+            .sort(function (a, b) {
+              return Number(a) - Number(b);
+            })
+            .map(function (k) {
+              return numericKeysToArrays(value[k]);
+            });
+        }
+        var out = {};
+        for (var k in value) {
+          if (!Object.prototype.hasOwnProperty.call(value, k)) continue;
+          out[k] = numericKeysToArrays(value[k]);
+        }
+        return out;
+      };
+
       var stripEmptyJsonValues = function (value) {
         if (value === "" || value === null || value === undefined) return undefined;
         if (typeof value !== "object") return value;
@@ -80,6 +114,43 @@ export function buildVanillaWiredSubmitReplacement(
         return out;
       };
 
+      var readAsDataURL = function (file) {
+        return new Promise(function (resolve, reject) {
+          var r = new FileReader();
+          r.onload = function () {
+            resolve(typeof r.result === "string" ? r.result : "");
+          };
+          r.onerror = function () {
+            reject(r.error);
+          };
+          r.readAsDataURL(file);
+        });
+      };
+
+      var embedFileInputsAsBase64 = async function (form, payload) {
+        var inputs = form.querySelectorAll('input[type="file"][name]');
+        for (var i = 0; i < inputs.length; i++) {
+          var input = inputs[i];
+          var name = input.name;
+          if (resolveFieldType(name) !== "file") continue;
+          var files = input.files;
+          if (!files || files.length === 0) {
+            setDeepValue(payload, name, undefined);
+            continue;
+          }
+          if (input.multiple) {
+            var urls = await Promise.all(
+              Array.prototype.map.call(files, function (f) {
+                return readAsDataURL(f);
+              }),
+            );
+            setDeepValue(payload, name, urls);
+          } else {
+            setDeepValue(payload, name, await readAsDataURL(files[0]));
+          }
+        }
+      };
+
       var toPayload = function (form) {
         var payload = {};
         var formData = new FormData(form);
@@ -88,7 +159,11 @@ export function buildVanillaWiredSubmitReplacement(
         while (!step.done) {
           var key = step.value[0];
           var value = step.value[1];
-          setDeepValue(payload, key, coerceValue(FIELD_TYPES[key], value));
+          if (value instanceof File) {
+            step = it.next();
+            continue;
+          }
+          setDeepValue(payload, key, coerceValue(resolveFieldType(key), value));
           step = it.next();
         }
         var checkboxes = form.querySelectorAll('input[type="checkbox"][name]');
@@ -102,7 +177,9 @@ export function buildVanillaWiredSubmitReplacement(
       };
 
       var payload = toPayload(form);
-      var jsonBody = stripEmptyJsonValues(payload);
+      await embedFileInputsAsBase64(form, payload);
+      var withArrays = numericKeysToArrays(payload);
+      var jsonBody = stripEmptyJsonValues(withArrays);
       var response = await fetch(API_BASE_URL + API_PATH, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
