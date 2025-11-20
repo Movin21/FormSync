@@ -38,8 +38,15 @@ export const Canvas: React.FC = () => {
     } as React.CSSProperties;
 
     return (
-        <div className="canvas-area">
-            <div className="form-preview" style={themeStyles}>
+        <div
+            className="canvas-area"
+            onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}
+        >
+            <div
+                className="form-preview"
+                style={themeStyles}
+                onClick={(e) => e.stopPropagation()} // Prevent deselection when clicking the form card itself
+            >
                 <h1 className="form-title">{form.meta?.title || form.name}</h1>
                 {form.meta?.description && (
                     <p className="text-muted" style={{ marginBottom: '2rem' }}>
