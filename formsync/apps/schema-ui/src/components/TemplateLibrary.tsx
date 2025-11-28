@@ -53,15 +53,15 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-5xl max-h-[90vh] flex flex-col">
-        <CardHeader className="border-b">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 fade-in">
+      <Card className="w-full max-w-5xl max-h-[90vh] flex flex-col glass scale-in shadow-2xl">
+        <CardHeader className="border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">Schema Template Library</CardTitle>
-              <CardDescription>Choose a pre-built template to get started quickly</CardDescription>
+              <CardTitle className="text-2xl font-bold text-gradient-secondary">Schema Template Library</CardTitle>
+              <CardDescription className="mt-2">Choose a pre-built template to get started quickly</CardDescription>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-white/10">
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -76,18 +76,19 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
                 placeholder="Search templates..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
 
             {/* Category Filter */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {categories.map((cat) => (
                 <Button
                   key={cat.value}
                   size="sm"
-                  variant={selectedCategory === cat.value ? 'default' : 'outline'}
+                  variant={selectedCategory === cat.value ? 'gradient' : 'outline'}
                   onClick={() => setSelectedCategory(cat.value)}
+                  className="transition-all"
                 >
                   {cat.label} ({cat.count})
                 </Button>
@@ -102,29 +103,29 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
             {templates.map((template) => (
               <Card
                 key={template.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary"
+                className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary-400 hover:-translate-y-1 glass group"
                 onClick={() => handleSelectTemplate(template)}
               >
                 <CardHeader>
                   <div className="flex items-start gap-3">
-                    <div className="text-4xl">{template.icon || '📄'}</div>
+                    <div className="text-4xl group-hover:scale-110 transition-transform">{template.icon || '📄'}</div>
                     <div className="flex-1">
-                      <CardTitle className="text-base">{template.name}</CardTitle>
-                      <CardDescription className="text-xs mt-1">
-                        {template.category.toUpperCase()}
+                      <CardTitle className="text-base group-hover:text-gradient-secondary transition-all">{template.name}</CardTitle>
+                      <CardDescription className="text-xs mt-1 uppercase font-semibold text-primary-600 dark:text-primary-400">
+                        {template.category}
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{template.description}</p>
                   
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 mb-3">
                     {template.tags.slice(0, 3).map((tag) => (
                       <span
                         key={tag}
-                        className="inline-block px-2 py-0.5 text-xs bg-secondary text-secondary-foreground rounded"
+                        className="inline-block px-2 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full"
                       >
                         {tag}
                       </span>
@@ -137,10 +138,14 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
                   </div>
 
                   {/* Schema preview info */}
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    {Object.keys(template.schema.properties || {}).length} fields
+                  <div className="mt-3 text-xs text-muted-foreground flex items-center gap-3">
+                    <span className="font-semibold">
+                      {Object.keys(template.schema.properties || {}).length} fields
+                    </span>
                     {template.schema.required?.length > 0 && (
-                      <span> • {template.schema.required.length} required</span>
+                      <span className="text-accent-600">
+                        {template.schema.required.length} required
+                      </span>
                     )}
                   </div>
                 </CardContent>
@@ -150,8 +155,9 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
 
           {/* No Results */}
           {templates.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground text-lg">No templates found</p>
+            <div className="text-center py-12 fade-in-up">
+              <div className="text-6xl mb-4">🔍</div>
+              <p className="text-muted-foreground text-lg font-semibold">No templates found</p>
               <p className="text-sm text-muted-foreground mt-2">Try adjusting your search or filters</p>
             </div>
           )}
