@@ -90,11 +90,12 @@ export const EnhancementsPanel: React.FC<EnhancementsPanelProps> = ({
               <Button
                 onClick={onApplyAll}
                 size="sm"
-                className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                variant="outline"
+                className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
                 disabled={appliedCount === enhancements.length}
               >
-                <Check className="h-4 w-4" />
-                Apply All
+                <Check className="h-4 w-4 text-blue-600" />
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Apply All</span>
               </Button>
             )}
             {onUndoAll && appliedCount > 0 && (
@@ -214,10 +215,11 @@ export const EnhancementsPanel: React.FC<EnhancementsPanelProps> = ({
                         <Button
                           size="sm"
                           onClick={() => onApplySuggestion(index)}
-                          className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 border-0"
+                          variant="outline"
+                          className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
                         >
-                          <Check className="h-4 w-4" />
-                          Apply
+                          <Check className="h-4 w-4 text-green-600" />
+                          <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Apply</span>
                         </Button>
                       )}
                     </div>
