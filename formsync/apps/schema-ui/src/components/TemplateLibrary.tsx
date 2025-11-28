@@ -76,7 +76,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
                 placeholder="Search templates..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-neutral-800 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
               />
             </div>
 
@@ -88,7 +88,7 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onSelectTempla
                   size="sm"
                   variant={selectedCategory === cat.value ? 'gradient' : 'outline'}
                   onClick={() => setSelectedCategory(cat.value)}
-                  className="transition-all"
+                  className="transition-all hover:scale-105"
                 >
                   {cat.label} ({cat.count})
                 </Button>
