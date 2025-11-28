@@ -498,7 +498,7 @@ export const TechnicalEditor: React.FC = () => {
               className="gap-2"
             >
               <TreePine className="h-4 w-4" />
-              Tree
+              Schema Tree
             </Button>
             <Button
               variant="outline"
