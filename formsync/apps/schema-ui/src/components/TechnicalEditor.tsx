@@ -372,10 +372,12 @@ export const TechnicalEditor: React.FC = () => {
     input.click();
   }, []);
 
-  const handleTemplateSelect = useCallback((template: any) => {
-    setCurrentSchema(template.schema);
-    setShowTemplates(false);
-    toast.success('Template applied');
+  const handleTemplateSelect = useCallback((schema: any) => {
+    // Set the schema as currentSchema so it displays in the right editor immediately
+    setCurrentSchema(schema);
+    toast.success('Template loaded!', {
+      description: 'Schema is ready to use',
+    });
   }, [setCurrentSchema]);
 
   // Keyboard shortcuts
