@@ -411,17 +411,18 @@ export const TechnicalEditor: React.FC = () => {
               onClick={handleConvert}
               size="lg"
               disabled={loading}
-              className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 border-0 shadow-lg"
+              variant="outline"
+              className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Converting...
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="h-5 w-5" />
-                  Convert
+                  <Zap className="h-5 w-5 text-blue-600" />
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
                 </>
               )}
             </Button>
@@ -430,17 +431,18 @@ export const TechnicalEditor: React.FC = () => {
               onClick={handleValidate}
               size="lg"
               disabled={loading || !displaySchema}
-              className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 border-0 shadow-lg"
+              variant="outline"
+              className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Validating...
+                  <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle className="h-5 w-5" />
-                  Validate
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validate</span>
                 </>
               )}
             </Button>
@@ -449,17 +451,18 @@ export const TechnicalEditor: React.FC = () => {
               onClick={handleEnhance}
               size="lg"
               disabled={loading || !displaySchema}
-              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 border-0 shadow-lg"
+              variant="outline"
+              className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Enhancing...
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-5 w-5" />
-                  AI Enhance
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">AI Enhance</span>
                 </>
               )}
             </Button>
