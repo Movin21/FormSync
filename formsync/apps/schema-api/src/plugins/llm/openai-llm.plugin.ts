@@ -49,19 +49,57 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
         messages: [
           {
             role: 'system',
-            content: `You are a JSON Schema expert. Your role is to enhance schemas by ADDING metadata only.
+            content: `You are a robust, conservative JSON Schema fixer/normalizer for JSON Schema Draft-07.
+You will receive a single object named inputSchema (a JSON Schema).
 
-STRICT RULES YOU MUST FOLLOW:
-1. NEVER modify: property names, types, enums, structure, required lists
-2. NEVER replace existing "format" values (email, date, uri, etc.) with patterns
-3. NEVER add constraints that contradict existing structure
-4. ALWAYS preserve existing formats - they have higher priority than patterns
-5. YOU MAY ONLY ADD: description, title (if missing), examples, x-accessibility
-6. ADD patterns ONLY if NO format exists
-7. ADD minLength/maxLength ONLY if not already present
-8. EVERY field MUST have: description AND examples array
+Your job: produce a high-quality, non-destructive "fixed" schema by applying only safe normalization and metadata-filling rules. Never invent or remove business fields or change enums/types. Return JSON only.
 
-Return only valid JSON with the enhanced schema and changes array.`,
+OUTPUT FORMAT (required)
+Return a single JSON object:
+{
+  "schema": { ...the fixed schema... },
+  "changes": [
+    { "path": "properties.email.format", "changeType": "added", "originalValue": null, "newValue": "email", "reason": "Added email format" }
+  ]
+}
+
+PROCESSING RULES (STRICT — must follow)
+
+A. Absolute invariants — do NOT change:
+  1. Property keys (names/casing) — do not rename, remove or add property keys
+  2. Enum values and order — must remain exactly as input
+  3. Existing required arrays — do not remove or add required entries
+  4. Object ↔ array structure — do not convert object to array or vice-versa
+  5. Types — preserve existing types (string stays string, number stays number)
+
+B. Allowed safe corrections (apply ONLY when clearly needed):
+  1. Date fields: If property name/title contains "date" and lacks format, add "format": "date"
+  2. Email fields: If name/title contains "email" and format missing, add "format": "email"
+  3. Numbers: Preserve minimum/maximum. Add realistic examples if missing
+  4. Arrays: If array is required and minItems missing, set "minItems": 1
+
+C. Metadata to add to every property (recursively):
+  1. Description: If missing, add one-sentence description from property name
+  2. Examples: If missing, add 1-2 realistic examples based on type/format:
+       - email → ["user@example.com"]
+       - date → ["1990-01-01"]
+       - number → [1] or use minimum
+       - enum → [firstEnumValue]
+  3. x-accessibility: If exists as string, convert to object: { "label": "<string>", "hint": "" }
+
+D. Postal code & phone heuristics:
+  1. postalCode: Add pattern ^[0-9A-Za-z \\-]{1,10}$ if missing and maxLength exists
+  2. phone: Add example like "123-456-7890"
+
+E. Nested structures:
+  1. Apply rules recursively to nested properties and items.properties
+  2. Do not overwrite existing description, examples, format, pattern
+
+F. Validation:
+  1. After fixes, ensure invariants (A) still hold
+  2. If any fix would violate invariants, skip it and note in changes as "rejected"
+
+Return only the JSON object with "schema" and "changes" keys.`,
           },
           { role: 'user', content: prompt }
         ],
@@ -146,84 +184,14 @@ Return only valid JSON with the enhanced schema and changes array.`,
   }
 
   private buildPrompt(schema: any, options?: EnhancementOptions): string {
-    const focusAreas = options?.focusAreas || ['naming', 'validation', 'accessibility', 'descriptions'];
-    const preserveStructure = options?.preserveStructure !== false;
-    
-    return `Enhance this JSON Schema by ADDING metadata only.
+    return `Please fix and normalize this JSON Schema following the rules provided in the system prompt.
 
-**ABSOLUTE RULES - BREAKING THESE IS FORBIDDEN**:
-
-1. DO NOT MODIFY:
-   - Property names (keep exact spelling/casing)
-   - Property types (string stays string, number stays number)
-   - Enum values (keep exact list)
-   - Required arrays (do not add or remove fields)
-   - Structure (object stays object, array stays array)
-   - Existing "format" values (email, date, uri, etc.)
-
-2. NEVER REPLACE FORMAT WITH PATTERN:
-   - If field has "format": "email" - KEEP IT, do NOT add pattern
-   - If field has "format": "date" - KEEP IT, do NOT add pattern
-   - Format has HIGHEST priority - never override
-
-3. YOU MAY ONLY ADD (if missing):
-   - "description" (REQUIRED for every field)
-   - "examples" (REQUIRED array with realistic examples)
-   - "title" (only if not already present)
-   - "x-accessibility" (metadata for screen readers)
-   - "pattern" (ONLY if NO "format" exists)
-   - "minLength"/"maxLength" (ONLY if not present and logical)
-   - "minimum"/"maximum" (ONLY if not present and logical)
-
-4. VALIDATION CONSTRAINTS:
-   - Do NOT add maxLength if it could break existing data
-   - Do NOT add pattern if format exists
-   - Do NOT add constraints that contradict existing schema
-   - Do NOT make fields more restrictive than original intent
-
-5. REQUIRED FOR EVERY ENHANCED FIELD:
-   - "description": "Clear explanation of the field"
-   - "examples": ["realistic", "example", "values"]
-
-${preserveStructure ? `6. PRESERVE STRUCTURE EXACTLY:
-   - If schema is flat, keep it flat
-   - Do NOT add wrapper objects
-   - Do NOT restructure properties
-   - Do NOT change property paths` : ''}
-
-Original Schema:
+Input Schema (inputSchema):
 ${JSON.stringify(schema, null, 2)}
 
-Enhancement Focus Areas: ${focusAreas.join(', ')}
+Focus areas: ${options?.focusAreas?.join(', ') || 'all'}
 
-Instructions:
-${focusAreas.includes('descriptions') ? '- [REQUIRED] Add "description" to EVERY field\n' : ''}${focusAreas.includes('descriptions') ? '- [REQUIRED] Add "examples" array to EVERY field\n' : ''}${focusAreas.includes('naming') ? '- [OPTIONAL] Add "title" ONLY if missing (never modify existing)\n' : ''}${focusAreas.includes('validation') ? '- [CAREFUL] Add validation ONLY if compatible with existing format/type\n' : ''}${focusAreas.includes('validation') ? '- [CRITICAL] NEVER add pattern if "format" exists\n' : ''}${focusAreas.includes('accessibility') ? '- [OPTIONAL] Add "x-accessibility" metadata for screen readers\n' : ''}
-Return JSON in this exact format:
-{
-  "schema": { ...enhanced schema with IDENTICAL structure... },
-  "changes": [
-    {
-      "path": "properties.email.description",
-      "originalValue": null,
-      "newValue": "User email address",
-      "changeType": "added",
-      "reason": "Added description for clarity"
-    },
-    {
-      "path": "properties.email.examples",
-      "originalValue": null,
-      "newValue": ["user@example.com"],
-      "changeType": "added",
-      "reason": "Added realistic example"
-    }
-  ]
-}
-
-REMEMBER:
-- Keep ALL existing formats (email, date, uri, etc.)
-- Add description + examples to EVERY field
-- Do NOT modify structure or property names
-- Do NOT replace formats with patterns`;
+Return the result in the specified JSON format with "schema" and "changes" keys.`;
   }
 }
 

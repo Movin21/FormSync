@@ -65,10 +65,13 @@ export class SchemaService {
       throw new BadRequestException('Could not detect format or find suitable parser');
     }
 
+
     console.log('[SchemaService] Using parser:', parser.name);
     const result = await parser.parse(dto.input);
 
     if (!result.success) {
+      console.error('[SchemaService] Parsing failed:', result.errors);
+      console.error('[SchemaService] Input was:', dto.input.substring(0, 200));
       throw new BadRequestException({
         message: 'Parsing failed',
         errors: result.errors,
