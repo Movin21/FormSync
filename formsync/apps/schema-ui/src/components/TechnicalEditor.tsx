@@ -475,9 +475,9 @@ export const TechnicalEditor: React.FC = () => {
       </div>
 
       {/* Main Content - Sidebar + Editors */}
-      <div className="flex-1 flex gap-4 min-h-[600px]">
-        {/* Left Sidebar - Quick Actions */}
-        <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
+      <div className="flex-1 flex gap-4 min-h-[600px] relative">
+        {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
+        <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
           {/* Expand/Collapse Toggle */}
           <Button
             variant="ghost"
