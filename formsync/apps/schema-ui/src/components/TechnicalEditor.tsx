@@ -43,7 +43,7 @@ interface HistoryEntry {
 interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
-  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error') => void;
+  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error'| 'pending') => void;
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({ 
@@ -62,6 +62,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  
+  // Validation state
+  const [isInputValid, setIsInputValid] = useState(false);
+  const [validationError, setValidationError] = useState<string>('');
   
   // Individual loading states for each action
   const [convertLoading, setConvertLoading] = useState(false);
@@ -86,50 +90,126 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Computed - prioritize currentSchema so applied suggestions show immediately
   const displaySchema = currentSchema || convertedSchema;
 
-  // Handlers
-  const handleConvert = useCallback(async () => {
-    if (!editorValue.trim()) {
-      toast.error('Please enter some code to convert');
-      return;
-    }
-
-    clearError();
-    setConvertLoading(true);
-    onStageUpdate?.('Enter Schema', 'loading');
-    try {
-      await convertSchema(editorValue, format);
-      toast.success('Schema converted successfully!');
+  // Handle editor value change - Update "Enter Schema" stage
+  const handleEditorChange = useCallback((value: string | undefined) => {
+    const newValue = value || '';
+    setEditorValue(newValue);
+    
+    // Update "Enter Schema" stage based on content
+    if (newValue.trim()) {
       onStageUpdate?.('Enter Schema', 'complete');
-    } catch (error) {
-      toast.error('Failed to convert schema');
-      onStageUpdate?.('Enter Schema', 'error');
-    } finally {
-      setConvertLoading(false);
     }
-  }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
+    // Note: We don't set it back to pending when empty since that's not a valid status type
+  }, [onStageUpdate]);
 
+  // Helper function to validate input format
+  const validateInputFormat = (input: string, expectedFormat: FormatType): { isValid: boolean; error?: string } => {
+    try {
+      if (expectedFormat === 'json') {
+        JSON.parse(input);
+        return { isValid: true };
+      } else if (expectedFormat === 'yaml') {
+        // Basic YAML validation - check for common issues
+        if (input.includes('\t')) {
+          return { isValid: false, error: 'YAML cannot contain tabs. Use spaces for indentation.' };
+        }
+        // Additional YAML checks can be added here
+        return { isValid: true };
+      } else if (expectedFormat === 'xml') {
+        // Basic XML validation
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(input, 'text/xml');
+        const parseError = doc.querySelector('parsererror');
+        if (parseError) {
+          return { isValid: false, error: 'Invalid XML format' };
+        }
+        return { isValid: true };
+      }
+      return { isValid: true };
+    } catch (error) {
+      if (expectedFormat === 'json') {
+        return { isValid: false, error: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}` };
+      }
+      return { isValid: false, error: `Invalid ${expectedFormat.toUpperCase()} format` };
+    }
+  };
+
+  // Handlers - NEW ORDER: Validate → Convert → Enhance
+  
+  // 1. Validate raw input first
   const handleValidate = useCallback(async () => {
-    if (!displaySchema) {
-      toast.error('No schema to validate');
+    if (!editorValue.trim()) {
+      toast.error('Please enter some code to validate');
       return;
     }
 
     clearError();
     setValidateLoading(true);
-    onStageUpdate?.('Schema Validation', 'loading');
+    onStageUpdate?.('Input Validation', 'loading');
+    
     try {
-      await validateSchema(displaySchema);
-      // Show validation dialog instead of just toast
+      // Validate that the input matches the selected format
+      const validation = validateInputFormat(editorValue, format);
+      
+      if (!validation.isValid) {
+        setIsInputValid(false);
+        setValidationError(validation.error || 'Input does not match selected format');
+        onStageUpdate?.('Input Validation', 'error');
+        
+        // Show validation dialog with error
+        setShowValidationDialog(true);
+        
+        toast.error('Validation Failed', {
+          description: 'Click to see details',
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Validation passed
+      setIsInputValid(true);
+      setValidationError('');
+      onStageUpdate?.('Input Validation', 'complete');
+      
+      toast.success(`Valid ${format.toUpperCase()} format!`, {
+        description: 'You can now convert to JSON Schema',
+      });
+      
+      // Show success dialog
       setShowValidationDialog(true);
-      onStageUpdate?.('Schema Validation', 'complete');
     } catch (error) {
-      onStageUpdate?.('Schema Validation', 'error');
+      setIsInputValid(false);
+      setValidationError(error instanceof Error ? error.message : 'Validation failed');
+      onStageUpdate?.('Input Validation', 'error');
       toast.error('Validation failed');
     } finally {
       setValidateLoading(false);
     }
-  }, [displaySchema, clearError, validateSchema, onStageUpdate]);
+  }, [editorValue, format, clearError, onStageUpdate]);
 
+  // 2. Convert to JSON Schema
+  const handleConvert = useCallback(async () => {
+    if (!editorValue.trim()) {
+      toast.error('Please enter and validate your schema first');
+      return;
+    }
+
+    clearError();
+    setConvertLoading(true);
+    onStageUpdate?.('Schema Conversion', 'loading');
+    try {
+      await convertSchema(editorValue, format);
+      toast.success('Schema converted to JSON Schema successfully!');
+      onStageUpdate?.('Schema Conversion', 'complete');
+    } catch (error) {
+      toast.error('Failed to convert schema');
+      onStageUpdate?.('Schema Conversion', 'error');
+    } finally {
+      setConvertLoading(false);
+    }
+  }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
+
+  // 3. AI Enhance
   const handleEnhance = useCallback(async () => {
     if (!displaySchema) {
       toast.error('No schema to enhance');
@@ -414,6 +494,146 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleConvert]);
 
+  // Handle AI Fix for validation errors
+  const handleAIFix = useCallback(async () => {
+    if (!editorValue || !validationError) return;
+    
+    toast.info('AI is fixing your schema...');
+    setIsInputValid(false); // Reset validation state
+    
+    try {
+      // Simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // TODO: Replace this mock with actual LLM API call
+      // const fixedSchema = await aiService.fixSchema(editorValue, format, validationError);
+      
+      let fixedSchema = editorValue;
+      
+      // Advanced mock fixes for JSON
+      if (format === 'json') {
+        try {
+          // Step 1: Fix common syntax issues
+          fixedSchema = editorValue
+            .replace(/,(\s*[}\]])/g, '$1')           // Remove trailing commas
+            .replace(/'/g, '"')                       // Replace single quotes
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+          
+          // Step 2: Try to balance brackets
+          const openBraces = (fixedSchema.match(/{/g) || []).length;
+          const closeBraces = (fixedSchema.match(/}/g) || []).length;
+          const openBrackets = (fixedSchema.match(/\[/g) || []).length;
+          const closeBrackets = (fixedSchema.match(/\]/g) || []).length;
+          
+          // Add missing closing brackets
+          if (openBrackets > closeBrackets) {
+            const missing = openBrackets - closeBrackets;
+            // Find the last array opening and add closing brackets smartly
+            let tempSchema = fixedSchema;
+            for (let i = 0; i < missing; i++) {
+              // Look for the last comma or opening bracket before adding
+              tempSchema = tempSchema.replace(/,(\s*)$/, '$1]') || tempSchema + '\n]';
+            }
+            fixedSchema = tempSchema;
+          }
+          
+          // Add missing closing braces
+          if (openBraces > closeBraces) {
+            const missing = openBraces - closeBraces;
+            for (let i = 0; i < missing; i++) {
+              fixedSchema += '\n}';
+            }
+          }
+          
+          // Step 3: Validate the fix
+          JSON.parse(fixedSchema);
+          
+        } catch (parseError) {
+          // If still invalid, try a more aggressive fix
+          try {
+            // Remove trailing content after last valid structure
+            let cleaned = editorValue.trim();
+            
+            // Try to find and fix obvious bracket issues
+            const lines = cleaned.split('\n');
+            let bracketStack: string[] = [];
+            let fixedLines: string[] = [];
+            let lastGoodLine = 0;
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              for (const char of line) {
+                if (char === '{' || char === '[') {
+                  bracketStack.push(char);
+                } else if (char === '}') {
+                  if (bracketStack[bracketStack.length - 1] === '{') {
+                    bracketStack.pop();
+                  }
+                } else if (char === ']') {
+                  if (bracketStack[bracketStack.length - 1] === '[') {
+                    bracketStack.pop();
+                  }
+                }
+              }
+              
+              fixedLines.push(line);
+              
+              // Try parsing up to this line
+              const testJson = fixedLines.join('\n');
+              try {
+                // Close all open brackets
+                let closings = '';
+                for (let j = bracketStack.length - 1; j >= 0; j--) {
+                  closings += bracketStack[j] === '{' ? '}' : ']';
+                }
+                JSON.parse(testJson + closings);
+                lastGoodLine = i;
+              } catch {
+                // Continue
+              }
+            }
+            
+            // Use lines up to last good point and close brackets
+            fixedSchema = fixedLines.slice(0, lastGoodLine + 1).join('\n');
+            while (bracketStack.length > 0) {
+              const opening = bracketStack.pop();
+              fixedSchema += '\n' + (opening === '{' ? '}' : ']');
+            }
+            
+            // Final validation
+            JSON.parse(fixedSchema);
+          } catch {
+            // Last resort: just clean up whitespace
+            fixedSchema = editorValue.trim();
+            toast.warning('Could not fully repair JSON', {
+              description: 'Please check and fix manually',
+            });
+          }
+        }
+      }
+      
+      // Update the editor with the fixed schema
+      if (fixedSchema !== editorValue) {
+        setEditorValue(fixedSchema);
+        
+        toast.success('Schema fixed!', {
+          description: 'AI repaired the syntax errors. Please validate again.',
+          duration: 4000,
+        });
+      } else {
+        toast.info('No automatic fixes available', {
+          description: 'Please fix the errors manually',
+        });
+      }
+      
+      // Reset validation state so user can validate again
+      setValidationError('');
+    } catch (error) {
+      toast.error('Failed to fix schema automatically');
+      console.error('AI Fix error:', error);
+    }
+  }, [editorValue, format, validationError]);
+
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Header Row: Format Selector (Left) + Generate Button (Right) */}
@@ -440,30 +660,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       <div>
         <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Actions</h3>
         <div className="flex gap-2 flex-wrap">
-          <Button
-            onClick={handleConvert}
-            size="lg"
-            disabled={convertLoading}
-            variant="outline"
-            className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-          >
-            {convertLoading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
-              </>
-            ) : (
-              <>
-                <Zap className="h-5 w-5 text-blue-600" />
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
-              </>
-            )}
-          </Button>
-
+          {/* 1. Validate Input Format */}
           <Button
             onClick={handleValidate}
             size="lg"
-            disabled={validateLoading || !displaySchema}
+            disabled={validateLoading}
             variant="outline"
             className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
           >
@@ -480,6 +681,28 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             )}
           </Button>
 
+          {/* 2. Convert to JSON Schema */}
+          <Button
+            onClick={handleConvert}
+            size="lg"
+            disabled={convertLoading || !isInputValid}
+            variant="outline"
+            className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+          >
+            {convertLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 text-blue-600" />
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
+              </>
+            )}
+          </Button>
+
+          {/* 3. AI Enhance */}
           <Button
             onClick={handleEnhance}
             size="lg"
@@ -619,7 +842,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                 height="100%"
                 language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}
-                onChange={(value) => setEditorValue(value || '')}
+                onChange={handleEditorChange}
                 theme="vs-dark"
                 options={{
                   minimap: { enabled: false },
@@ -719,19 +942,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Template Library Modal */}
-      {showTemplates && (
-        <TemplateLibrary
-          onClose={() => setShowTemplates(false)}
-          onSelectTemplate={handleTemplateSelect}
-        />
-      )}
-
       {/* Validation Results Dialog */}
-      {showValidationDialog && validationResults && (
+      {showValidationDialog && (
         <ValidationDialog
-          results={Array.isArray(validationResults) ? validationResults : validationResults.issues || []}
+          results={validationResults?.issues || []}
           onClose={() => setShowValidationDialog(false)}
+          formatError={validationError}
+          isSuccess={isInputValid}
+          onAIFix={handleAIFix}
         />
       )}
     </div>

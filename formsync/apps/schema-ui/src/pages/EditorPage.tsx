@@ -28,7 +28,8 @@ export const EditorPage: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [stages, setStages] = useState<GenerationStage[]>([
     { name: 'Enter Schema', status: 'pending', progress: 0 },
-    { name: 'Schema Validation', status: 'pending', progress: 0 },
+    { name: 'Input Validation', status: 'pending', progress: 0 },
+    { name: 'Schema Conversion', status: 'pending', progress: 0 },
     { name: 'AI Enhancement', status: 'pending', progress: 0 },
     { name: 'Frontend Generation', status: 'pending', progress: 0 },
     { name: 'Backend Generation', status: 'pending', progress: 0 },
@@ -63,11 +64,11 @@ export const EditorPage: React.FC = () => {
     toast.info('Starting code generation...');
 
     try {
-      // Start from Frontend Generation (index 3)
-      const generationStages = stages.slice(3);
+      // Start from Frontend Generation (index 4)
+      const generationStages = stages.slice(4);
       
       for (let i = 0; i < generationStages.length; i++) {
-        const stageIndex = i + 3; // Offset for actual index
+        const stageIndex = i + 4; // Offset for actual index
         setStages(prev =>
           prev.map((s, idx) => (idx === stageIndex ? { ...s, status: 'loading', progress: 0 } : s))
         );
@@ -103,7 +104,7 @@ export const EditorPage: React.FC = () => {
 
     } catch (error) {
       toast.error('Generation failed. Please try again.');
-      setStages(prev => prev.map((s, idx) => idx >= 3 ? { ...s, status: 'error' } : s));
+      setStages(prev => prev.map((s, idx) => idx >= 4 ? { ...s, status: 'error' } : s));
     } finally {
       setIsGenerating(false);
     }
