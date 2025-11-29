@@ -1,7 +1,7 @@
 /**
- * Technical Editor Component - Simplified Working Version
+ * Technical Editor Component
  * 
- * Clean layout with visible convert button and both editors
+ * Integrated schema editor with generation controls
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -12,6 +12,9 @@ import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
 import { EnhancementsPanel } from './EnhancementsPanel';
 import { ValidationDialog } from './ValidationDialog';
+import { GenerateButton } from './shared/GenerateButton';
+import { FlowDiagram } from './shared/FlowDiagram';
+import type { GenerationStage } from '../pages/EditorPage';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -39,7 +42,17 @@ interface HistoryEntry {
   action: string;
 }
 
-export const TechnicalEditor: React.FC = () => {
+interface TechnicalEditorProps {
+  onGenerate?: () => void;
+  isGenerating?: boolean;
+  generationStages?: GenerationStage[];
+}
+
+export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({ 
+  onGenerate, 
+  isGenerating = false,
+  generationStages = []
+}) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
   const [editorValue, setEditorValue] = useState('');
@@ -399,83 +412,101 @@ export const TechnicalEditor: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Top Bar with Format Selector and Action Buttons */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        {/* Format Selector */}
+      {/* Header Row: Format Selector (Left) + Generate Button (Right) */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Left: Format Selector */}
         <div>
           <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Input Format</h3>
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Main Action Buttons */}
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Actions</h3>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              onClick={handleConvert}
-              size="lg"
-              disabled={convertLoading}
-              variant="outline"
-              className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-            >
-              {convertLoading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="h-5 w-5 text-blue-600" />
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleValidate}
-              size="lg"
-              disabled={validateLoading || !displaySchema}
-              variant="outline"
-              className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
-            >
-              {validateLoading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin text-green-600" />
-                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validate</span>
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleEnhance}
-              size="lg"
-              disabled={enhanceLoading || !displaySchema}
-              variant="outline"
-              className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
-            >
-              {enhanceLoading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 text-purple-600" />
-                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">AI Enhance</span>
-                </>
-              )}
-            </Button>
+        {/* Right: Generate Code Button */}
+        {onGenerate && (
+          <div className="flex items-end">
+            <GenerateButton
+              onClick={onGenerate}
+              isGenerating={isGenerating}
+              disabled={false}
+            />
           </div>
+        )}
+      </div>
+
+      {/* Action Buttons Row - Below Format Selector */}
+      <div>
+        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Actions</h3>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={handleConvert}
+            size="lg"
+            disabled={convertLoading}
+            variant="outline"
+            className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+          >
+            {convertLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 text-blue-600" />
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={handleValidate}
+            size="lg"
+            disabled={validateLoading || !displaySchema}
+            variant="outline"
+            className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
+          >
+            {validateLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validate</span>
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={handleEnhance}
+            size="lg"
+            disabled={enhanceLoading || !displaySchema}
+            variant="outline"
+            className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+          >
+            {enhanceLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">AI Enhance</span>
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
+      {/* Pipeline Status Diagram - Always Visible */}
+      {generationStages.length > 0 && (
+        <div className="mt-4">
+          <FlowDiagram stages={generationStages} />
+        </div>
+      )}
+
       {/* Main Content - Sidebar + Editors */}
-      <div className="flex-1 flex gap-4 min-h-[600px] relative">
+      <div className="flex-1 flex gap-4 min-h-[800px] relative">
         {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
         <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
           {/* Expand/Collapse Toggle */}
