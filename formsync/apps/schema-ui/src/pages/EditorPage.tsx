@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/layout/PageTransition';
 import { TechnicalEditor } from '../components/TechnicalEditor';
 import { TemplateBuilder } from '../components/TemplateBuilder';
+import { FlowDiagram } from '../components/shared/FlowDiagram';
 import { useSchemaStore } from '../stores/schemaStore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Code2, Wand2 } from 'lucide-react';
@@ -26,11 +27,25 @@ export const EditorPage: React.FC = () => {
   const { currentSchema, validationResults } = useSchemaStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [stages, setStages] = useState<GenerationStage[]>([
+    { name: 'Enter Schema', status: 'pending', progress: 0 },
     { name: 'Schema Validation', status: 'pending', progress: 0 },
+    { name: 'AI Enhancement', status: 'pending', progress: 0 },
     { name: 'Frontend Generation', status: 'pending', progress: 0 },
     { name: 'Backend Generation', status: 'pending', progress: 0 },
-    { name: 'DTO & Tests', status: 'pending', progress: 0 },
+    { name: 'DTO Generation', status: 'pending', progress: 0 },
+    { name: 'Test Generation', status: 'pending', progress: 0 },
   ]);
+
+  // Handler to update stages from TechnicalEditor
+  const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error') => {
+    setStages(prev => 
+      prev.map(s => 
+        s.name === stageName 
+          ? { ...s, status, progress: status === 'complete' ? 100 : status === 'loading' ? 50 : 0 }
+          : s
+      )
+    );
+  };
 
   const handleGenerate = async () => {
     // Validation check - show error if not valid
@@ -48,23 +63,26 @@ export const EditorPage: React.FC = () => {
     toast.info('Starting code generation...');
 
     try {
-      // Simulate stage updates
-      for (let i = 0; i < stages.length; i++) {
+      // Start from Frontend Generation (index 3)
+      const generationStages = stages.slice(3);
+      
+      for (let i = 0; i < generationStages.length; i++) {
+        const stageIndex = i + 3; // Offset for actual index
         setStages(prev =>
-          prev.map((s, idx) => (idx === i ? { ...s, status: 'loading', progress: 0 } : s))
+          prev.map((s, idx) => (idx === stageIndex ? { ...s, status: 'loading', progress: 0 } : s))
         );
 
         // Simulate progress
         for (let progress = 0; progress <= 100; progress += 25) {
           await new Promise(resolve => setTimeout(resolve, 200));
           setStages(prev =>
-            prev.map((s, idx) => (idx === i ? { ...s, progress } : s))
+            prev.map((s, idx) => (idx === stageIndex ? { ...s, progress } : s))
           );
         }
 
         // Mark complete
         setStages(prev =>
-          prev.map((s, idx) => (idx === i ? { ...s, status: 'complete', progress: 100 } : s))
+          prev.map((s, idx) => (idx === stageIndex ? { ...s, status: 'complete', progress: 100 } : s))
         );
       }
 
@@ -85,7 +103,7 @@ export const EditorPage: React.FC = () => {
 
     } catch (error) {
       toast.error('Generation failed. Please try again.');
-      setStages(prev => prev.map(s => ({ ...s, status: 'error' })));
+      setStages(prev => prev.map((s, idx) => idx >= 3 ? { ...s, status: 'error' } : s));
     } finally {
       setIsGenerating(false);
     }
@@ -102,6 +120,11 @@ export const EditorPage: React.FC = () => {
             <p className="text-neutral-600 dark:text-neutral-400">
               Create and validate your schema, then generate complete application code
             </p>
+          </div>
+
+          {/* Pipeline Flow - Always Visible Between Description and Tabs */}
+          <div className="mb-6">
+            <FlowDiagram stages={stages} />
           </div>
 
           <div className="max-w-7xl mx-auto">
@@ -122,7 +145,7 @@ export const EditorPage: React.FC = () => {
                 <TechnicalEditor 
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
-                  generationStages={stages}
+                  onStageUpdate={handleStageUpdate}
                 />
               </TabsContent>
 

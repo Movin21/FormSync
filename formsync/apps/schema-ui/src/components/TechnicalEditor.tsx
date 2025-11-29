@@ -13,8 +13,6 @@ import { SchemaTreeView } from './SchemaTreeView';
 import { EnhancementsPanel } from './EnhancementsPanel';
 import { ValidationDialog } from './ValidationDialog';
 import { GenerateButton } from './shared/GenerateButton';
-import { FlowDiagram } from './shared/FlowDiagram';
-import type { GenerationStage } from '../pages/EditorPage';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -45,13 +43,13 @@ interface HistoryEntry {
 interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
-  generationStages?: GenerationStage[];
+  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error') => void;
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({ 
   onGenerate, 
   isGenerating = false,
-  generationStages = []
+  onStageUpdate
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -97,15 +95,18 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     clearError();
     setConvertLoading(true);
+    onStageUpdate?.('Enter Schema', 'loading');
     try {
       await convertSchema(editorValue, format);
       toast.success('Schema converted successfully!');
+      onStageUpdate?.('Enter Schema', 'complete');
     } catch (error) {
       toast.error('Failed to convert schema');
+      onStageUpdate?.('Enter Schema', 'error');
     } finally {
       setConvertLoading(false);
     }
-  }, [editorValue, format, convertSchema, clearError]);
+  }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
 
   const handleValidate = useCallback(async () => {
     if (!displaySchema) {
@@ -115,16 +116,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     clearError();
     setValidateLoading(true);
+    onStageUpdate?.('Schema Validation', 'loading');
     try {
       await validateSchema(displaySchema);
       // Show validation dialog instead of just toast
       setShowValidationDialog(true);
+      onStageUpdate?.('Schema Validation', 'complete');
     } catch (error) {
+      onStageUpdate?.('Schema Validation', 'error');
       toast.error('Validation failed');
     } finally {
       setValidateLoading(false);
     }
-  }, [displaySchema, clearError, validateSchema]);
+  }, [displaySchema, clearError, validateSchema, onStageUpdate]);
 
   const handleEnhance = useCallback(async () => {
     if (!displaySchema) {
@@ -134,19 +138,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     clearError();
     setEnhanceLoading(true);
+    onStageUpdate?.('AI Enhancement', 'loading');
     try {
       await enhanceSchema(displaySchema);
-      // Just show the suggestions panel, don't auto-apply
+      toast.success('Schema enhanced with AI suggestions!');
       setShowSuggestions(true);
-      toast.success('AI suggestions generated!', {
-        description: 'Review and apply suggestions below',
-      });
+      onStageUpdate?.('AI Enhancement', 'complete');
     } catch (error) {
-      toast.error('Failed to generate suggestions');
+      toast.error('Failed to enhance schema');
+      onStageUpdate?.('AI Enhancement', 'error');
     } finally {
       setEnhanceLoading(false);
     }
-  }, [displaySchema, clearError, enhanceSchema]);
+  }, [displaySchema, enhanceSchema, clearError, onStageUpdate]);
 
   // Add to history when schema changes
   const addToHistory = useCallback((schema: any, action: string) => {
@@ -497,13 +501,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           </Button>
         </div>
       </div>
-
-      {/* Pipeline Status Diagram - Always Visible */}
-      {generationStages.length > 0 && (
-        <div className="mt-4">
-          <FlowDiagram stages={generationStages} />
-        </div>
-      )}
 
       {/* Main Content - Sidebar + Editors */}
       <div className="flex-1 flex gap-4 min-h-[800px] relative">
