@@ -101,7 +101,10 @@ export const EditorPage: React.FC = () => {
       if (result.success && result.data) {
         toast.success('Code generation complete!');
         navigate('/generated', {
-          state: { generatedCode: result.data },
+          state: {
+            generatedCode: result.data,
+            schema: currentSchema
+          },
         });
       } else {
         throw new Error(result.error || 'Generation failed');
