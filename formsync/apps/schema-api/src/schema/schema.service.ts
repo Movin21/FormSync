@@ -34,8 +34,12 @@ export class SchemaService {
    * Auto-detect format and convert to JSON Schema Draft-7
    */
   async convertSchema(dto: ConvertSchemaDto) {
-    // Check cache first
-    const cacheKey = `convert:${Buffer.from(dto.input).toString('base64').slice(0, 32)}`;
+    // Check cache first (v2 cache for normalized schemas)
+    // Use crypto hash to avoid collisions from truncated keys
+    const crypto = await import('crypto');
+    const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
+    const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
+    
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return { ...cached, fromCache: true };
@@ -61,10 +65,13 @@ export class SchemaService {
       throw new BadRequestException('Could not detect format or find suitable parser');
     }
 
+
     console.log('[SchemaService] Using parser:', parser.name);
     const result = await parser.parse(dto.input);
 
     if (!result.success) {
+      console.error('[SchemaService] Parsing failed:', result.errors);
+      console.error('[SchemaService] Input was:', dto.input.substring(0, 200));
       throw new BadRequestException({
         message: 'Parsing failed',
         errors: result.errors,
