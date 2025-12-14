@@ -92,7 +92,7 @@ export class SchemaService {
 
   /**
    * POST /schema/enhance
-   * Use AI to enhance schema
+   * Use AI to enhance schema with quality scoring and explainability
    */
   async enhanceSchema(dto: EnhanceSchemaDto) {
     const providerName = dto.provider || 'openai-llm';
@@ -106,6 +106,7 @@ export class SchemaService {
       throw new BadRequestException(`LLM provider "${providerName}" is not configured`);
     }
 
+    // Use the provider directly to get raw AI results
     const result = await provider.enhanceSchema(dto.schema, {
       focusAreas: dto.focusAreas,
       preserveStructure: dto.preserveStructure,
@@ -118,13 +119,67 @@ export class SchemaService {
       });
     }
 
+    // Calculate quality metrics
+    const qualityScore = this.calculateQualityScore(result.enhancedSchema, result.changes || []);
+    const explanations = (result.changes || []).map(change => ({
+      path: change.path,
+      action: change.changeType ?? 'modified',
+      reason: change.reason ?? 'AI-based schema normalization',
+    }));
+
     return {
       enhancedSchema: result.enhancedSchema,
       changes: result.changes,
       tokensUsed: result.tokensUsed,
       model: result.model,
       provider: provider.getProviderName(),
+      // NEW: Quality metrics
+      qualityScore,
+      explanations,
+      metrics: {
+        totalChanges: result.changes?.length || 0,
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
+      },
     };
+  }
+
+  /**
+   * Calculate quality score for enhanced schema
+   */
+  private calculateQualityScore(schema: any, changes: any[]): number {
+    let score = 100;
+
+    // Penalize missing core structure
+    if (!schema?.properties) score -= 30;
+    
+    // Penalize lack of AI improvements
+    if (changes.length === 0) score -= 20;
+
+    // Accessibility heuristic
+    const accessibilityCoverage = this.calculateAccessibilityCoverage(schema);
+    if (accessibilityCoverage < 0.5) score -= 15;
+
+    return Math.max(score, 0);
+  }
+
+  /**
+   * Calculate accessibility coverage percentage
+   */
+  private calculateAccessibilityCoverage(schema: any): number {
+    let total = 0;
+    let covered = 0;
+
+    const walk = (obj: any) => {
+      if (!obj?.properties) return;
+      for (const prop of Object.values(obj.properties)) {
+        total++;
+        if ((prop as any)['x-accessibility']) covered++;
+        if ((prop as any).type === 'object') walk(prop);
+      }
+    };
+
+    walk(schema);
+    return total === 0 ? 1 : covered / total;
   }
 
   /**

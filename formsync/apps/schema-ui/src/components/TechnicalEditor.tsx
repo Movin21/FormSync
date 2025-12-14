@@ -12,6 +12,7 @@ import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
 import { EnhancementsPanel } from './EnhancementsPanel';
 import { ValidationDialog } from './ValidationDialog';
+import { QualityMetricsPanel } from './QualityMetricsPanel';
 import { GenerateButton } from './shared/GenerateButton';
 import { fixSchemaWithAI, mockAIFix } from '../services/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -58,6 +59,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [showTreeView, setShowTreeView] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showQualityMetrics, setShowQualityMetrics] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -79,6 +81,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     convertedSchema,
     enhancedSchema,
     enhancements,
+    qualityMetrics,
     validationResults,
     loading,
     convertSchema,
@@ -708,6 +711,25 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               <Badge className="absolute -top-1 -right-1 bg-purple-600 text-white px-1.5 py-0.5 text-xs">
                 {enhancements.length}
               </Badge>
+            </Button>
+          )}
+
+          {/* Quality Score */}
+          {qualityMetrics && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQualityMetrics(true)}
+              className={`w-full justify-start gap-3 h-10 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/20 ${!sidebarExpanded && 'px-2'}`}
+              title={!sidebarExpanded ? "View Quality Score" : undefined}
+            >
+              <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
+              {sidebarExpanded && <span className="text-sm">Quality Score</span>}
+              {sidebarExpanded && (
+                <Badge className="ml-auto bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 text-xs font-bold">
+                  {qualityMetrics.qualityScore}
+                </Badge>
+              )}
             </Button>
           )}
 

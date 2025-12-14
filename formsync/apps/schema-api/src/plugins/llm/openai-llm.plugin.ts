@@ -7,6 +7,11 @@
  * 
  * Design Decision: Uses OpenAI-compatible API format to allow
  * easy swapping with other providers (Azure OpenAI, Groq, local models, etc.)
+ * 
+ * NOTE:
+ * This plugin is a low-level LLM provider (transport layer).
+ * Domain-specific schema intelligence is implemented in SchemaEnhancerService
+ * for reusability, explainability, and quality scoring.
  */
 
 import { LLMProviderPlugin, EnhancementResult, EnhancementOptions, SchemaEnhancement } from '@formsync/plugins';

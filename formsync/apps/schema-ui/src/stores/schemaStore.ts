@@ -44,6 +44,18 @@ interface SchemaStore {
   enhancedSchema: any;
   validationResults: any;
   enhancements: SchemaEnhancement[];
+  qualityMetrics: {
+    qualityScore: number;
+    explanations: Array<{
+      path: string;
+      action: string;
+      reason: string;
+    }>;
+    metrics: {
+      totalChanges: number;
+      accessibilityCoverage: number;
+    };
+  } | null;
   loading: boolean;
   error: string | null;
 
@@ -68,6 +80,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
   enhancedSchema: null,
   validationResults: null,
   enhancements: [],
+  qualityMetrics: null,
   loading: false,
   error: null,
 
@@ -98,6 +111,11 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       set({
         enhancedSchema: response.data.enhancedSchema,
         enhancements: response.data.changes || [],
+        qualityMetrics: {
+          qualityScore: response.data.qualityScore || 0,
+          explanations: response.data.explanations || [],
+          metrics: response.data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+        },
         // Note: We DON'T update currentSchema here - it stays as the converted schema
         // Only clicking individual suggestions will modify currentSchema
         loading: false,
