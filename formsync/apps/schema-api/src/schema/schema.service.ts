@@ -13,6 +13,7 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { PluginRegistry } from '@formsync/plugins';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { SchemaQualityEngine } from './schema-quality-engine';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
@@ -26,8 +27,89 @@ export class SchemaService {
   constructor(
     @Inject('PLUGIN_REGISTRY') private readonly pluginRegistry: PluginRegistry,
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly qualityEngine: SchemaQualityEngine,
   ) {}
+
+  /**
+   * POST /schema/enhance
+   * Use AI to enhance schema with comprehensive quality scoring
+   */
+  async enhanceSchema(dto: EnhanceSchemaDto) {
+    const providerName = dto.provider || 'openai-llm';
+    const provider = this.pluginRegistry.getLLMProvider(providerName);
+
+    if (!provider) {
+      throw new NotFoundException(`LLM provider "${providerName}" not found`);
+    }
+
+    if (!provider.isConfigured()) {
+      throw new BadRequestException(`LLM provider "${providerName}" is not configured`);
+    }
+
+    // Use the provider directly to get raw AI results
+    const result = await provider.enhanceSchema(dto.schema, {
+      focusAreas: dto.focusAreas,
+      preserveStructure: dto.preserveStructure,
+    });
+
+    if (!result.success) {
+      throw new BadRequestException({
+        message: 'AI enhancement failed',
+        errors: result.errors,
+      });
+    }
+
+    // Use SchemaQualityEngine for comprehensive, deterministic scoring
+    const qualityResult = this.qualityEngine.evaluate(
+      result.enhancedSchema,
+      result.changes || []
+    );
+
+    // Map changes to explanations
+    const explanations = (result.changes || []).map(change => ({
+      path: change.path,
+      action: change.changeType ?? 'modified',
+      reason: change.reason ?? 'AI-based schema normalization',
+    }));
+
+    return {
+      enhancedSchema: result.enhancedSchema,
+      changes: result.changes,
+      tokensUsed: result.tokensUsed,
+      model: result.model,
+      provider: provider.getProviderName(),
+      // NEW: Comprehensive quality metrics from SchemaQualityEngine
+      qualityScore: qualityResult.score,
+      qualityBreakdown: qualityResult.breakdown,
+      issues: qualityResult.issues,
+      explanations,
+      metrics: {
+        totalChanges: result.changes?.length || 0,
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
+      },
+    };
+  }
+
+  /**
+   * Helper: Calculate accessibility coverage for backward compatibility
+   */
+  private calculateAccessibilityCoverage(schema: any): number {
+    let total = 0;
+    let covered = 0;
+
+    const walk = (obj: any) => {
+      if (!obj?.properties) return;
+      for (const prop of Object.values(obj.properties)) {
+        total++;
+        if ((prop as any)['x-accessibility']) covered++;
+        if ((prop as any).type === 'object') walk(prop);
+      }
+    };
+
+    walk(schema);
+    return total === 0 ? 1 : covered / total;
+  }
 
   /**
    * POST /schema/convert
@@ -88,98 +170,6 @@ export class SchemaService {
     await this.redis.set(cacheKey, response);
 
     return response;
-  }
-
-  /**
-   * POST /schema/enhance
-   * Use AI to enhance schema with quality scoring and explainability
-   */
-  async enhanceSchema(dto: EnhanceSchemaDto) {
-    const providerName = dto.provider || 'openai-llm';
-    const provider = this.pluginRegistry.getLLMProvider(providerName);
-
-    if (!provider) {
-      throw new NotFoundException(`LLM provider "${providerName}" not found`);
-    }
-
-    if (!provider.isConfigured()) {
-      throw new BadRequestException(`LLM provider "${providerName}" is not configured`);
-    }
-
-    // Use the provider directly to get raw AI results
-    const result = await provider.enhanceSchema(dto.schema, {
-      focusAreas: dto.focusAreas,
-      preserveStructure: dto.preserveStructure,
-    });
-
-    if (!result.success) {
-      throw new BadRequestException({
-        message: 'AI enhancement failed',
-        errors: result.errors,
-      });
-    }
-
-    // Calculate quality metrics
-    const qualityScore = this.calculateQualityScore(result.enhancedSchema, result.changes || []);
-    const explanations = (result.changes || []).map(change => ({
-      path: change.path,
-      action: change.changeType ?? 'modified',
-      reason: change.reason ?? 'AI-based schema normalization',
-    }));
-
-    return {
-      enhancedSchema: result.enhancedSchema,
-      changes: result.changes,
-      tokensUsed: result.tokensUsed,
-      model: result.model,
-      provider: provider.getProviderName(),
-      // NEW: Quality metrics
-      qualityScore,
-      explanations,
-      metrics: {
-        totalChanges: result.changes?.length || 0,
-        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
-      },
-    };
-  }
-
-  /**
-   * Calculate quality score for enhanced schema
-   */
-  private calculateQualityScore(schema: any, changes: any[]): number {
-    let score = 100;
-
-    // Penalize missing core structure
-    if (!schema?.properties) score -= 30;
-    
-    // Penalize lack of AI improvements
-    if (changes.length === 0) score -= 20;
-
-    // Accessibility heuristic
-    const accessibilityCoverage = this.calculateAccessibilityCoverage(schema);
-    if (accessibilityCoverage < 0.5) score -= 15;
-
-    return Math.max(score, 0);
-  }
-
-  /**
-   * Calculate accessibility coverage percentage
-   */
-  private calculateAccessibilityCoverage(schema: any): number {
-    let total = 0;
-    let covered = 0;
-
-    const walk = (obj: any) => {
-      if (!obj?.properties) return;
-      for (const prop of Object.values(obj.properties)) {
-        total++;
-        if ((prop as any)['x-accessibility']) covered++;
-        if ((prop as any).type === 'object') walk(prop);
-      }
-    };
-
-    walk(schema);
-    return total === 0 ? 1 : covered / total;
   }
 
   /**

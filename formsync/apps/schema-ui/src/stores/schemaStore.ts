@@ -46,6 +46,14 @@ interface SchemaStore {
   enhancements: SchemaEnhancement[];
   qualityMetrics: {
     qualityScore: number;
+    qualityBreakdown: {
+      structure: number;
+      validation: number;
+      accessibility: number;
+      consistency: number;
+      improvement: number;
+    };
+    issues: string[];
     explanations: Array<{
       path: string;
       action: string;
@@ -113,6 +121,14 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
         enhancements: response.data.changes || [],
         qualityMetrics: {
           qualityScore: response.data.qualityScore || 0,
+          qualityBreakdown: response.data.qualityBreakdown || {
+            structure: 0,
+            validation: 0,
+            accessibility: 0,
+            consistency: 0,
+            improvement: 0,
+          },
+          issues: response.data.issues || [],
           explanations: response.data.explanations || [],
           metrics: response.data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
         },

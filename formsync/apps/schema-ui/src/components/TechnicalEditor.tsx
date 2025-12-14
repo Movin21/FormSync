@@ -882,6 +882,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         />
       )}
 
+      {/* Quality Metrics Panel */}
+      {showQualityMetrics && qualityMetrics && (
+        <QualityMetricsPanel
+          metrics={qualityMetrics}
+          onClose={() => setShowQualityMetrics(false)}
+        />
+      )}
+
       {/* Validation Results Dialog */}
       {showValidationDialog && (
         <ValidationDialog
