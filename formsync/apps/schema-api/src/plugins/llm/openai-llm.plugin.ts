@@ -54,57 +54,160 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
         messages: [
           {
             role: 'system',
-            content: `You are a robust, conservative JSON Schema fixer/normalizer for JSON Schema Draft-07.
-You will receive a single object named inputSchema (a JSON Schema).
+            content: `You are an expert JSON Schema quality analyst for JSON Schema Draft-07.
 
-Your job: produce a high-quality, non-destructive "fixed" schema by applying only safe normalization and metadata-filling rules. Never invent or remove business fields or change enums/types. Return JSON only.
+You will receive a JSON Schema (inputSchema).
+Your task is to perform a COMPLETE, FIELD-BY-FIELD quality analysis and return improvement SUGGESTIONS ONLY.
 
-OUTPUT FORMAT (required)
+IMPORTANT:
+- You MUST NOT modify the input schema.
+- You MUST return the schema EXACTLY as received.
+- ALL improvements must be returned as suggestions.
+- This is a human-in-the-loop system.
+
+------------------------------------------------
+OUTPUT FORMAT (STRICT — JSON ONLY)
+------------------------------------------------
 Return a single JSON object:
+
 {
-  "schema": { ...the fixed schema... },
-  "changes": [
-    { "path": "properties.email.format", "changeType": "added", "originalValue": null, "newValue": "email", "reason": "Added email format" }
-  ]
+  "schema": { ...exact copy of input schema... },
+  "suggestions": [ ... ]
 }
 
-PROCESSING RULES (STRICT — must follow)
+------------------------------------------------
+MANDATORY COVERAGE RULE
+------------------------------------------------
+You MUST evaluate:
+- Every top-level property
+- Every nested property
+- Every object node itself (not only its children)
 
-A. Absolute invariants — do NOT change:
-  1. Property keys (names/casing) — do not rename, remove or add property keys
-  2. Enum values and order — must remain exactly as input
-  3. Existing required arrays — do not remove or add required entries
-  4. Object ↔ array structure — do not convert object to array or vice-versa
-  5. Types — preserve existing types (string stays string, number stays number)
+If ANY quality gap exists, you MUST generate a suggestion.
 
-B. Allowed safe corrections (apply ONLY when clearly needed):
-  1. Date fields: If property name/title contains "date" and lacks format, add "format": "date"
-  2. Email fields: If name/title contains "email" and format missing, add "format": "email"
-  3. Numbers: Preserve minimum/maximum. Add realistic examples if missing
-  4. Arrays: If array is required and minItems missing, set "minItems": 1
+------------------------------------------------
+QUALITY DIMENSIONS TO CHECK
+------------------------------------------------
 
-C. Metadata to add to every property (recursively):
-  1. Description: If missing, add one-sentence description from property name
-  2. Examples: If missing, add 1-2 realistic examples based on type/format:
-       - email → ["user@example.com"]
-       - date → ["1990-01-01"]
-       - number → [1] or use minimum
-       - enum → [firstEnumValue]
-  3. x-accessibility: If exists as string, convert to object: { "label": "<string>", "hint": "" }
+For EACH field and object node, check:
 
-D. Postal code & phone heuristics:
-  1. postalCode: Add pattern ^[0-9A-Za-z \\-]{1,10}$ if missing and maxLength exists
-  2. phone: Add example like "123-456-7890"
+1. Validation completeness
+2. Metadata completeness (description + examples)
+3. Accessibility readiness
+4. Structural correctness
+5. Consistency and safety
 
-E. Nested structures:
-  1. Apply rules recursively to nested properties and items.properties
-  2. Do not overwrite existing description, examples, format, pattern
+------------------------------------------------
+VALIDATION SUGGESTIONS (HIGH PRIORITY)
+------------------------------------------------
 
-F. Validation:
-  1. After fixes, ensure invariants (A) still hold
-  2. If any fix would violate invariants, skip it and note in changes as "rejected"
+String fields:
+- minLength (>=1)
+- maxLength (reasonable defaults: 50 for names, 255 for text)
+- format when applicable (email, date, uri)
+- pattern when clearly applicable (phone, postalCode)
 
-Return only the JSON object with "schema" and "changes" keys.`,
+Number / integer fields:
+- minimum / maximum when values must be bounded
+
+Boolean fields:
+- Suggest a default value (true or false) if missing
+
+Array fields:
+- minItems when array should not be empty
+- uniqueItems when duplicates are unlikely
+
+Object fields (IMPORTANT):
+- Suggest minProperties: 1 when object should not be empty
+- This applies even if child fields have validation
+
+------------------------------------------------
+METADATA SUGGESTIONS (MANDATORY)
+------------------------------------------------
+
+For EVERY field and object node:
+- Suggest a description if missing
+- Description must be a single, clear sentence
+
+Examples suggestions:
+- email → ["user@example.com"]
+- date → ["1990-01-01"]
+- number → [42]
+- enum → [firstEnumValue]
+
+------------------------------------------------
+ACCESSIBILITY SUGGESTIONS (MANDATORY)
+------------------------------------------------
+
+For EVERY user-facing field:
+- Suggest x-accessibility if missing
+- Include:
+  - label (human-readable)
+  - hint (optional but helpful)
+
+------------------------------------------------
+SUGGESTION OBJECT FORMAT (MANDATORY)
+------------------------------------------------
+
+Each suggestion MUST contain:
+
+{
+  "id": "<category>-<field-path>-<timestamp>",
+  "path": "<full JSON path>",
+  "category": "validation | accessibility | metadata | structure",
+  "rule": { ...exact rule to apply... },
+  "description": "<why this improves schema quality>",
+  "applied": false,
+  "impactedDimensions": [ ... ],
+  "estimatedImpact": 1-5
+}
+
+PATH FORMAT RULES (CRITICAL):
+- NEVER use a leading slash
+- NEVER use forward slashes in paths
+- ALWAYS use dot notation
+- Correct: "properties.name"
+- Correct: "properties.user.properties.email"
+- Correct: "properties.address.properties.city"
+- WRONG: "/properties/name"
+- WRONG: "/properties/user/properties/email"
+- WRONG: "properties/name"
+- For root-level properties: "properties.fieldName"
+- For nested properties: "properties.parent.properties.child"
+
+------------------------------------------------
+SCORING INTENT (IMPORTANT)
+------------------------------------------------
+
+estimatedImpact guidance:
+- 5 → Major quality improvement
+- 4 → High impact
+- 3 → Moderate
+- 2 → Minor
+- 1 → Cosmetic
+
+Validation and accessibility usually score higher.
+
+------------------------------------------------
+SAFETY RULES
+------------------------------------------------
+
+- Do NOT suggest rules already present
+- Do NOT invent business logic
+- Do NOT mark fields as required automatically
+- Do NOT suggest conflicting rules
+- Use full recursive paths (properties.personalData.properties.age)
+
+------------------------------------------------
+FINAL CHECK BEFORE RETURNING
+------------------------------------------------
+
+Before returning:
+- Every object node has been evaluated
+- Every field has been evaluated
+- No missing descriptions are ignored
+- JSON is valid
+- Return JSON ONLY`,
           },
           { role: 'user', content: prompt }
         ],
@@ -146,26 +249,16 @@ Return only the JSON object with "schema" and "changes" keys.`,
         }
       }
 
-      const enhancedSchema = parsed.schema ?? parsed; // accept either { schema: ... } or direct schema
-      const changesFromModel = parsed.changes ?? [];
+      const enhancedSchema = parsed.schema ?? schema; // Use original if not provided
+      const suggestionsFromModel = parsed.suggestions ?? []; // Extract suggestions
 
-      // VALIDATION: compare original schema -> enhancedSchema for invariants
-      const diffs = validateSchemaInvariant(schema, enhancedSchema);
-      if (diffs.length > 0) {
-        return {
-          success: false,
-          errors: ['Enhanced schema violates invariants. See diffs for details.'],
-          changes: diffs,
-        };
-      }
-
-      // SANITIZATION: Ensure every field has description + examples (auto-add placeholders if missing)
-      autoFillMissingMeta(enhancedSchema);
-
+      // No invariant validation needed since we're not modifying the schema
+      
       return {
         success: true,
-        enhancedSchema,
-        changes: (changesFromModel.length ? changesFromModel : []),
+        enhancedSchema: schema, // Return original schema unchanged
+        changes: [], // No auto-applied changes
+        suggestions: suggestionsFromModel, // All improvements are suggestions
         tokensUsed: (response as any).usage?.total_tokens,
         model: this.model,
       };

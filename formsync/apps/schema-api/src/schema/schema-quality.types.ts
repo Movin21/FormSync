@@ -8,6 +8,8 @@ export interface QualityResult {
   score: number;
   breakdown: QualityBreakdown;
   issues: string[];
+  appliedSuggestionsCount?: number; // NEW: Number of applied suggestions
+  totalSuggestionsCount?: number; // NEW: Total suggestions available
 }
 
 export interface QualityBreakdown {

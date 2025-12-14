@@ -7,16 +7,31 @@
  * - Invariant protection
  * - Quality scoring
  * - Explainability
+ * - Suggestion management (NEW)
  * 
  * Design Decision:
  * The underlying LLM plugin (e.g., OpenAI) handles model communication,
  * while this service provides reusable, explainable schema reasoning.
  * This separation ensures the AI logic is portable across different LLM providers.
+ * 
+ * UPDATED FOR SUGGESTION-DRIVEN MODEL:
+ * - AI returns safe auto-fixes AND suggestions separately
+ * - Quality scoring is based on CURRENT state (base + applied suggestions)
+ * - Suggestions are NOT auto-applied - human-in-the-loop control
+ * - All operations are deterministic and traceable
  */
 
 import { Injectable } from '@nestjs/common';
 import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
 import { EnhancementOptions } from '@formsync/plugins';
+import { SchemaQualityEngine } from './schema-quality-engine';
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { 
+  EnhancementResultWithSuggestions,
+  SchemaSuggestion,
+  ApplySuggestionRequest,
+  ApplySuggestionResult
+} from './schema-suggestion.types';
 
 export interface SchemaEnhancementEngineResult {
   enhancedSchema: any;
@@ -34,18 +49,27 @@ export interface SchemaEnhancementEngineResult {
 @Injectable()
 export class SchemaEnhancerService {
   constructor(
-    private readonly llmPlugin: OpenAILLMPlugin
+    private readonly llmPlugin: OpenAILLMPlugin,
+    private readonly qualityEngine: SchemaQualityEngine,
+    private readonly suggestionEngine: SchemaSuggestionEngine
   ) {}
 
   /**
    * Enhance a JSON Schema using AI with explainability and quality metrics
+   * (UPDATED for suggestion-driven model)
+   * 
+   * Returns:
+   * - Enhanced schema (with safe auto-fixes ONLY)
+   * - List of auto-applied changes
+   * - List of AI suggestions (NOT auto-applied)
+   * - Quality score for CURRENT state (no suggestions applied yet)
    */
   async enhanceSchema(
     schema: any,
     options?: EnhancementOptions
-  ): Promise<SchemaEnhancementEngineResult> {
+  ): Promise<EnhancementResultWithSuggestions> {
 
-    // Delegate to LLM provider for raw AI enhancement
+    // Delegate to LLM provider for raw AI enhancement + suggestions
     const result = await this.llmPlugin.enhanceSchema(schema, options);
 
     if (!result.success) {
@@ -54,80 +78,139 @@ export class SchemaEnhancerService {
       );
     }
 
-    // Apply domain-specific intelligence layers
-    const explanations = this.mapChangesToExplanations(result.changes || []);
-    const qualityScore = this.calculateQualityScore(
-      result.enhancedSchema,
-      explanations
+    // Extract results
+    const enhancedSchema = result.enhancedSchema;
+    const changes = result.changes || [];
+    const suggestions = result.suggestions || [];
+
+    // Calculate quality score for CURRENT state (enhanced schema, NO suggestions applied)
+    const quality = this.qualityEngine.evaluate(
+      enhancedSchema,
+      changes,
+      [], // No suggestions applied yet
+      suggestions // Total suggestions available
     );
 
     return {
-      enhancedSchema: result.enhancedSchema,
-      explanations,
-      qualityScore,
+      enhancedSchema,
+      changes,
+      suggestions,
+      quality: {
+        score: quality.score,
+        breakdown: quality.breakdown,
+        issues: quality.issues,
+      },
       model: result.model,
       tokensUsed: result.tokensUsed,
     };
   }
 
-  // -------------------------------
-  // Explainability Layer
-  // -------------------------------
-
   /**
-   * Transform raw AI changes into human-readable explanations
-   * This provides transparency into what the AI modified and why
+   * Apply or undo a suggestion and recalculate quality score
+   * (NEW method for suggestion-driven model)
+   * 
+   * This method:
+   * 1. Applies/undos the suggestion deterministically
+   * 2. Recalculates quality score based on new state
+   * 3. Returns updated schema, suggestion, and quality metrics
+   * 
+   * CRITICAL: No AI call - completely deterministic
    */
-  private mapChangesToExplanations(changes: any[]) {
-    return changes.map(change => ({
-      path: change.path,
-      action: change.changeType ?? 'modified',
-      reason: change.reason ?? 'AI-based schema normalization',
-    }));
-  }
-
-  // -------------------------------
-  // Quality Scoring Layer
-  // -------------------------------
-
-  /**
-   * Calculate a quality score for the enhanced schema
-   * Considers: structure completeness, accessibility coverage, explanation depth
-   */
-  private calculateQualityScore(schema: any, explanations: any[]): number {
-    let score = 100;
-
-    // Penalize missing core structure
-    if (!schema?.properties) score -= 30;
+  applySuggestion(
+    baseSchema: any,
+    suggestion: SchemaSuggestion,
+    allSuggestions: SchemaSuggestion[],
+    aiChanges: any[],
+    action: 'apply' | 'undo'
+  ): ApplySuggestionResult {
     
-    // Penalize lack of AI improvements
-    if (explanations.length === 0) score -= 20;
+    // Validate suggestion
+    this.suggestionEngine.validateSuggestion(suggestion);
 
-    // Accessibility heuristic - encourage inclusive design
-    const accessibilityCoverage = this.countAccessibility(schema);
-    if (accessibilityCoverage < 0.5) score -= 15;
+    // Calculate the CURRENT schema state (base + all previously applied suggestions)
+    const currentSchema = this.suggestionEngine.getCurrentSchemaState(
+      baseSchema,
+      allSuggestions
+    );
 
-    return Math.max(score, 0);
+    // Get quality score BEFORE this operation
+    const beforeQuality = this.qualityEngine.evaluate(
+      currentSchema,
+      aiChanges,
+      allSuggestions.filter(s => s.applied),
+      allSuggestions
+    );
+
+    // Apply or undo the suggestion
+    let updatedSchema: any;
+    const updatedSuggestion = { ...suggestion };
+
+    if (action === 'apply') {
+      if (suggestion.applied) {
+        throw new Error('Suggestion is already applied');
+      }
+      updatedSchema = this.suggestionEngine.applySuggestion(currentSchema, suggestion);
+      updatedSuggestion.applied = true;
+    } else {
+      if (!suggestion.applied) {
+        throw new Error('Suggestion is not applied, cannot undo');
+      }
+      updatedSchema = this.suggestionEngine.undoSuggestion(currentSchema, suggestion);
+      updatedSuggestion.applied = false;
+    }
+
+    // Update the suggestion list
+    const updatedSuggestions = allSuggestions.map(s =>
+      s.id === suggestion.id ? updatedSuggestion : s
+    );
+
+    // Recalculate quality score AFTER the operation
+    const afterQuality = this.qualityEngine.evaluate(
+      updatedSchema,
+      aiChanges,
+      updatedSuggestions.filter(s => s.applied),
+      updatedSuggestions
+    );
+
+    // Calculate score delta
+    const scoreDelta = afterQuality.score - beforeQuality.score;
+
+    return {
+      schema: updatedSchema,
+      suggestion: updatedSuggestion,
+      quality: {
+        score: afterQuality.score,
+        breakdown: afterQuality.breakdown,
+        issues: afterQuality.issues,
+      },
+      scoreDelta,
+    };
   }
 
   /**
-   * Calculate the percentage of schema properties with accessibility metadata
-   * Higher values indicate better screen reader and assistive technology support
+   * Recalculate quality score for current schema state
+   * (NEW helper method)
+   * 
+   * Used when frontend needs to refresh quality metrics without
+   * making any changes to suggestions.
    */
-  private countAccessibility(schema: any): number {
-    let total = 0;
-    let covered = 0;
+  recalculateQuality(
+    baseSchema: any,
+    allSuggestions: SchemaSuggestion[],
+    aiChanges: any[]
+  ) {
+    // Get current schema state
+    const currentSchema = this.suggestionEngine.getCurrentSchemaState(
+      baseSchema,
+      allSuggestions
+    );
 
-    const walk = (obj: any) => {
-      if (!obj?.properties) return;
-      for (const prop of Object.values(obj.properties)) {
-        total++;
-        if ((prop as any)['x-accessibility']) covered++;
-        if ((prop as any).type === 'object') walk(prop);
-      }
-    };
-
-    walk(schema);
-    return total === 0 ? 1 : covered / total;
+    // Calculate quality
+    return this.qualityEngine.evaluate(
+      currentSchema,
+      aiChanges,
+      allSuggestions.filter(s => s.applied),
+      allSuggestions
+    );
   }
 }

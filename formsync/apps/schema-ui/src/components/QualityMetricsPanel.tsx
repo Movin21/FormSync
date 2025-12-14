@@ -35,6 +35,8 @@ interface QualityMetrics {
     totalChanges: number;
     accessibilityCoverage: number;
   };
+  appliedSuggestionsCount?: number;
+  totalSuggestionsCount?: number;
 }
 
 interface QualityMetricsPanelProps {
@@ -243,12 +245,30 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="text-2xl font-bold text-purple-600">{metrics.metrics.totalChanges}</div>
-                  <div className="text-sm text-purple-900 dark:text-purple-100">Total AI Changes</div>
+                  <div className="text-sm text-purple-900 dark:text-purple-100">Auto-Applied Changes</div>
                 </div>
                 <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                   <div className="text-2xl font-bold text-indigo-600">{accessibilityPercent}%</div>
                   <div className="text-sm text-indigo-900 dark:text-indigo-100">Accessibility Coverage</div>
                 </div>
+                {metrics.appliedSuggestionsCount !== undefined && metrics.totalSuggestionsCount !== undefined && (
+                  <>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {metrics.appliedSuggestionsCount}/{metrics.totalSuggestionsCount}
+                      </div>
+                      <div className="text-sm text-blue-900 dark:text-blue-100">Suggestions Applied</div>
+                    </div>
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="text-2xl font-bold text-green-600">
+                        {metrics.totalSuggestionsCount > 0 
+                          ? Math.round((metrics.appliedSuggestionsCount / metrics.totalSuggestionsCount) * 100)
+                          : 0}%
+                      </div>
+                      <div className="text-sm text-green-900 dark:text-green-100">Engagement Rate</div>
+                    </div>
+                  </>
+                )}
               </div>
               
               {metrics.explanations.length > 0 && (

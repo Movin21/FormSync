@@ -15,26 +15,42 @@
  * Design Decision:
  * Scoring is deterministic and independent of AI generation logic,
  * ensuring reproducibility and explainability for academic evaluation.
+ * 
+ * UPDATED FOR SUGGESTION-DRIVEN MODEL:
+ * - Scoring is based on the CURRENT schema state (with applied suggestions)
+ * - AI Improvement score is proportional to applied/total suggestions ratio
+ * - Validation score reflects ONLY validations present in current schema
+ * - No AI self-evaluation - all scoring is rule-based
  */
 
 import { Injectable } from '@nestjs/common';
 import { QualityResult, QualityBreakdown, SchemaProperty } from './schema-quality.types';
+import { SchemaSuggestion } from './schema-suggestion.types';
 
 @Injectable()
 export class SchemaQualityEngine {
   /**
-   * Main evaluation method
-   * @param schema - The enhanced JSON Schema to evaluate
-   * @param aiChanges - Array of AI-generated changes
+   * Main evaluation method (UPDATED for suggestion-driven model)
+   * 
+   * @param schema - The CURRENT schema state (base + applied suggestions)
+   * @param aiChanges - Array of AI-generated auto-applied changes
+   * @param appliedSuggestions - Suggestions that have been applied
+   * @param totalSuggestions - All suggestions (applied + not applied)
    * @returns Quality score, breakdown, and issues
    */
-  evaluate(schema: any, aiChanges: any[] = []): QualityResult {
+  evaluate(
+    schema: any,
+    aiChanges: any[] = [],
+    appliedSuggestions: SchemaSuggestion[] = [],
+    totalSuggestions: SchemaSuggestion[] = []
+  ): QualityResult {
     const issues: string[] = [];
 
     // Dimension 1: Structural Completeness (25 points)
     const structureScore = this.evaluateStructure(schema, issues);
 
     // Dimension 2: Validation Strength (25 points)
+    // CRITICAL: Score based on CURRENT schema state (includes applied suggestions)
     const validationScore = this.evaluateValidation(schema, issues);
 
     // Dimension 3: Accessibility & Metadata (20 points)
@@ -44,11 +60,29 @@ export class SchemaQualityEngine {
     const consistencyScore = this.evaluateConsistency(schema, issues);
 
     // Dimension 5: AI Improvement Depth (10 points)
-    const improvementScore = this.evaluateImprovement(aiChanges, issues);
+    // UPDATED: Score based on applied/total suggestion ratio
+    const improvementScore = this.evaluateImprovement(
+      aiChanges,
+      appliedSuggestions,
+      totalSuggestions,
+      issues
+    );
 
-    const totalScore = Math.round(
+    let totalScore = Math.round(
       structureScore + validationScore + accessibilityScore + consistencyScore + improvementScore
     );
+
+    // ANTI-PENALTY NORMALIZATION RULE:
+    // If ALL suggestions are applied AND no consistency violations exist,
+    // ensure score falls into Good/Excellent range (≥85)
+    if (totalSuggestions.length > 0 && appliedSuggestions.length === totalSuggestions.length) {
+      const consistencyViolations = 20 - consistencyScore;
+      if (consistencyViolations === 0 && totalScore < 85) {
+        // Boost score to minimum 85 (Good rating)
+        totalScore = Math.max(totalScore, 85);
+        issues.push('Score normalized to 85 (all suggestions applied, no violations)');
+      }
+    }
 
     return {
       score: totalScore,
@@ -60,6 +94,8 @@ export class SchemaQualityEngine {
         improvement: Math.round(improvementScore),
       },
       issues,
+      appliedSuggestionsCount: appliedSuggestions.length,
+      totalSuggestionsCount: totalSuggestions.length,
     };
   }
 
@@ -247,12 +283,23 @@ export class SchemaQualityEngine {
 
   /**
    * Check if a property has validation rules based on its type
+   * 
+   * UPDATED: Fixed validation recognition for:
+   * - Boolean fields (default, const, enum)
+   * - Enum fields (enum itself is validation)
+   * - Object fields (required, minProperties, maxProperties)
    */
   private hasValidationRules(property: SchemaProperty): boolean {
     const type = Array.isArray(property.type) ? property.type[0] : property.type;
 
+    // CRITICAL: If field has enum, it is ALWAYS validated (enum is validation)
+    if (property.enum && property.enum.length > 0) {
+      return true;
+    }
+
     switch (type) {
       case 'string':
+        // Enum already checked above, so skip additional checks if enum exists
         return !!(
           property.minLength ||
           property.maxLength ||
@@ -264,14 +311,26 @@ export class SchemaQualityEngine {
       case 'integer':
         return !!(property.minimum !== undefined || property.maximum !== undefined);
       
+      case 'boolean':
+        // ANY of these counts as boolean validation
+        return !!(
+          property.default !== undefined ||
+          property.const !== undefined ||
+          property.enum // already checked above but included for clarity
+        );
+      
       case 'array':
         return !!(property.minItems !== undefined);
       
+      case 'object':
+        // Object is validated if it has ANY of these
+        return !!(
+          property.minProperties !== undefined ||
+          property.maxProperties !== undefined ||
+          (property.required && Array.isArray(property.required) && property.required.length > 0)
+        );
+      
       default:
-        // Enum is considered validated
-        if (property.enum && property.enum.length > 0) {
-          return true;
-        }
         return false;
     }
   }
@@ -309,6 +368,16 @@ export class SchemaQualityEngine {
 
   /**
    * Count fields with descriptions and accessibility labels
+   * 
+   * UPDATED: Accessibility is ONLY required for user-input fields:
+   * - string, number, integer, boolean
+   * 
+   * NOT required for:
+   * - object (structural)
+   * - array (structural)
+   * - enum-only structural nodes
+   * 
+   * Descriptions are required for ALL fields (metadata dimension)
    */
   private countAccessibilityMetadata(schema: any, path = ''): {
     total: number;
@@ -328,21 +397,29 @@ export class SchemaQualityEngine {
     for (const [key, prop] of Object.entries(schema.properties)) {
       const property = prop as SchemaProperty;
       const fieldPath = path ? `${path}.${key}` : key;
+      const type = Array.isArray(property.type) ? property.type[0] : property.type;
 
+      // Determine if this field requires accessibility
+      const requiresA11y = this.isUserInputField(type);
+
+      // Count for description (ALL fields)
       total++;
-
-      // Check for description
       if (property.description) {
         withDesc++;
       } else {
         missingDesc.push(fieldPath);
       }
 
-      // Check for accessibility label
-      if (property['x-accessibility']?.label) {
-        withA11y++;
+      // Count for accessibility (ONLY user-input fields)
+      if (requiresA11y) {
+        if (property['x-accessibility']?.label) {
+          withA11y++;
+        } else {
+          missingA11y.push(fieldPath);
+        }
       } else {
-        missingA11y.push(fieldPath);
+        // Non-user-input fields get automatic full score for accessibility
+        withA11y++;
       }
 
       // Recurse into nested objects
@@ -357,6 +434,13 @@ export class SchemaQualityEngine {
     }
 
     return { total, withDesc, withA11y, missingDesc, missingA11y };
+  }
+
+  /**
+   * Determine if a field is a user-input field requiring accessibility
+   */
+  private isUserInputField(type: string): boolean {
+    return ['string', 'number', 'integer', 'boolean'].includes(type);
   }
 
   // ========================================
@@ -489,30 +573,68 @@ export class SchemaQualityEngine {
   // ========================================
 
   /**
-   * Evaluates the depth of AI improvements
+   * Evaluates the depth of AI improvements (UPDATED for suggestion-driven model)
+   * 
+   * CRITICAL CHANGE:
+   * Previously: Scored based on number of AI changes
+   * Now: Scored based on ratio of APPLIED suggestions to TOTAL suggestions
    * 
    * Rules:
-   * - Award 1 pt per meaningful change
-   * - Cap at 10 points
+   * - Auto-applied changes (safe fixes) contribute a base score
+   * - Applied suggestions contribute proportionally
+   * - Formula: baseScore + (appliedSuggestions / totalSuggestions) * suggestionWeight
    * 
-   * Meaningful changes:
-   * - Added validation rules
-   * - Added accessibility metadata
-   * - Added descriptions
-   * - Enhanced types/formats
+   * Scoring:
+   * - Base score for auto-fixes: min(aiChanges.length, 5) points
+   * - Suggestion application score: (applied/total) * 5 points
+   * - Total: up to 10 points
+   * 
+   * Academic Justification:
+   * - Rewards user engagement with AI suggestions
+   * - Does NOT auto-reward AI for generating more suggestions
+   * - Human decision-making is the scoring factor
+   * 
+   * @param aiChanges - Auto-applied safe changes
+   * @param appliedSuggestions - Suggestions that user has applied
+   * @param totalSuggestions - All suggestions (applied + not applied)
+   * @param issues - Array to accumulate quality issues
+   * @returns Score from 0 to 10
    */
-  private evaluateImprovement(aiChanges: any[], issues: string[]): number {
-    const meaningfulChanges = aiChanges.filter(change => 
+  private evaluateImprovement(
+    aiChanges: any[],
+    appliedSuggestions: SchemaSuggestion[],
+    totalSuggestions: SchemaSuggestion[],
+    issues: string[]
+  ): number {
+    let score = 0;
+
+    // Part 1: Base score for auto-applied safe changes (up to 5 points)
+    const meaningfulAutoChanges = aiChanges.filter(change => 
       this.isMeaningfulChange(change)
     );
+    const autoChangeScore = Math.min(meaningfulAutoChanges.length, 5);
+    score += autoChangeScore;
 
-    const score = Math.min(meaningfulChanges.length, 10);
+    // Part 2: Score for applied suggestions (up to 5 points)
+    if (totalSuggestions.length > 0) {
+      const applicationRatio = appliedSuggestions.length / totalSuggestions.length;
+      const suggestionScore = applicationRatio * 5;
+      score += suggestionScore;
 
-    if (meaningfulChanges.length === 0) {
-      issues.push('No meaningful AI improvements detected');
+      // Report engagement level
+      if (appliedSuggestions.length === 0) {
+        issues.push(`0 of ${totalSuggestions.length} AI suggestions applied - consider reviewing suggestions`);
+      } else if (appliedSuggestions.length < totalSuggestions.length) {
+        issues.push(`${appliedSuggestions.length} of ${totalSuggestions.length} AI suggestions applied`);
+      }
+    } else {
+      // No suggestions generated
+      if (meaningfulAutoChanges.length === 0) {
+        issues.push('No AI improvements detected (neither auto-fixes nor suggestions)');
+      }
     }
 
-    return score;
+    return Math.min(score, 10); // Cap at 10 points
   }
 
   /**

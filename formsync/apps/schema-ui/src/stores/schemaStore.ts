@@ -36,14 +36,28 @@ interface SchemaEnhancement {
   reason: string;
 }
 
+interface SchemaSuggestion {
+  id: string;
+  path: string;
+  category: 'validation' | 'accessibility' | 'structure' | 'metadata';
+  rule: Record<string, any>;
+  description: string;
+  applied: boolean;
+  impactedDimensions?: string[];
+  estimatedImpact?: number;
+}
+
 interface SchemaStore {
   // State
   schemas: Schema[];
   currentSchema: any;
   convertedSchema: any;
   enhancedSchema: any;
+  baseSchema: any; // NEW: Enhanced schema before suggestions
   validationResults: any;
   enhancements: SchemaEnhancement[];
+  suggestions: SchemaSuggestion[]; // NEW: AI suggestions
+  aiChanges: any[]; // NEW: Auto-applied changes
   qualityMetrics: {
     qualityScore: number;
     qualityBreakdown: {
@@ -63,6 +77,8 @@ interface SchemaStore {
       totalChanges: number;
       accessibilityCoverage: number;
     };
+    appliedSuggestionsCount?: number;
+    totalSuggestionsCount?: number;
   } | null;
   loading: boolean;
   error: string | null;
@@ -71,6 +87,8 @@ interface SchemaStore {
   setCurrentSchema: (schema: any) => void;
   convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<void>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
+  applySuggestion: (suggestion: SchemaSuggestion, action: 'apply' | 'undo') => Promise<number | undefined>;
+  recalculateQuality: () => Promise<void>;
   validateSchema: (schema: any, validators?: string[]) => Promise<void>;
   loadSchemas: (userId?: string) => Promise<void>;
   loadSchema: (id: string) => Promise<void>;
@@ -86,8 +104,11 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
   currentSchema: null,
   convertedSchema: null,
   enhancedSchema: null,
+  baseSchema: null,
   validationResults: null,
   enhancements: [],
+  suggestions: [],
+  aiChanges: [],
   qualityMetrics: null,
   loading: false,
   error: null,
@@ -116,29 +137,113 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await schemaApi.enhance({ schema, ...options });
+      const data = response.data;
+      
       set({
-        enhancedSchema: response.data.enhancedSchema,
-        enhancements: response.data.changes || [],
+        enhancedSchema: data.enhancedSchema,
+        baseSchema: data.enhancedSchema, // Store base schema (with auto-fixes, no suggestions)
+        currentSchema: data.enhancedSchema, // Initialize current schema
+        enhancements: data.changes || [],
+        suggestions: data.suggestions || [], // Store AI suggestions
+        aiChanges: data.changes || [], // Store auto-applied changes
         qualityMetrics: {
-          qualityScore: response.data.qualityScore || 0,
-          qualityBreakdown: response.data.qualityBreakdown || {
+          qualityScore: data.quality?.score || data.qualityScore || 0,
+          qualityBreakdown: data.quality?.breakdown || data.qualityBreakdown || {
             structure: 0,
             validation: 0,
             accessibility: 0,
             consistency: 0,
             improvement: 0,
           },
-          issues: response.data.issues || [],
-          explanations: response.data.explanations || [],
-          metrics: response.data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          issues: data.quality?.issues || data.issues || [],
+          explanations: data.explanations || [],
+          metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          appliedSuggestionsCount: 0, // No suggestions applied yet
+          totalSuggestionsCount: (data.suggestions || []).length,
         },
-        // Note: We DON'T update currentSchema here - it stays as the converted schema
-        // Only clicking individual suggestions will modify currentSchema
         loading: false,
       });
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'AI enhancement failed',
+        loading: false,
+      });
+    }
+  },
+
+  applySuggestion: async (suggestion, action) => {
+    const state = get();
+    set({ loading: true, error: null });
+    
+    try {
+      const response = await schemaApi.applySuggestion({
+        baseSchema: state.baseSchema,
+        suggestion,
+        allSuggestions: state.suggestions,
+        aiChanges: state.aiChanges,
+        action,
+      });
+
+      const data = response.data;
+
+      // Update the suggestion in the list
+      const updatedSuggestions = state.suggestions.map(s =>
+        s.id === suggestion.id ? data.suggestion : s
+      );
+
+      set({
+        currentSchema: data.schema, // Updated schema with suggestion applied/undone
+        suggestions: updatedSuggestions,
+        qualityMetrics: {
+          qualityScore: data.quality?.score || data.qualityScore,
+          qualityBreakdown: data.quality?.breakdown || data.qualityBreakdown,
+          issues: data.quality?.issues || data.issues || [],
+          explanations: state.qualityMetrics?.explanations || [],
+          metrics: state.qualityMetrics?.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          appliedSuggestionsCount: updatedSuggestions.filter(s => s.applied).length,
+          totalSuggestionsCount: updatedSuggestions.length,
+        },
+        loading: false,
+      });
+
+      return data.scoreDelta;
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to apply suggestion',
+        loading: false,
+      });
+      throw error;
+    }
+  },
+
+  recalculateQuality: async () => {
+    const state = get();
+    set({ loading: true, error: null });
+    
+    try {
+      const response = await schemaApi.recalculateQuality({
+        baseSchema: state.baseSchema,
+        allSuggestions: state.suggestions,
+        aiChanges: state.aiChanges,
+      });
+
+      const data = response.data;
+
+      set({
+        qualityMetrics: {
+          qualityScore: data.score,
+          qualityBreakdown: data.breakdown,
+          issues: data.issues || [],
+          explanations: state.qualityMetrics?.explanations || [],
+          metrics: state.qualityMetrics?.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          appliedSuggestionsCount: data.appliedSuggestionsCount,
+          totalSuggestionsCount: data.totalSuggestionsCount,
+        },
+        loading: false,
+      });
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to recalculate quality',
         loading: false,
       });
     }

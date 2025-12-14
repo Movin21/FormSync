@@ -10,7 +10,7 @@ import { useSchemaStore } from '../stores/schemaStore';
 import { FormatSelector, type FormatType } from './FormatSelector';
 import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
-import { EnhancementsPanel } from './EnhancementsPanel';
+import { SuggestionsPanel } from './SuggestionsPanel';
 import { ValidationDialog } from './ValidationDialog';
 import { QualityMetricsPanel } from './QualityMetricsPanel';
 import { GenerateButton } from './shared/GenerateButton';
@@ -61,7 +61,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showQualityMetrics, setShowQualityMetrics] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
-  const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -79,14 +78,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const {
     currentSchema,
     convertedSchema,
-    enhancedSchema,
-    enhancements,
+    suggestions,
     qualityMetrics,
     validationResults,
-    loading,
     convertSchema,
     enhanceSchema,
-    validateSchema,
+    applySuggestion,
     setCurrentSchema,
     clearError,
   } = useSchemaStore();
@@ -226,7 +223,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     try {
       await enhanceSchema(displaySchema);
       toast.success('Schema enhanced with AI suggestions!');
-      setShowSuggestions(true);
+      setShowSuggestions(true); // Auto-show suggestions panel
       onStageUpdate?.('AI Enhancement', 'complete');
     } catch (error) {
       toast.error('Failed to enhance schema');
@@ -235,6 +232,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setEnhanceLoading(false);
     }
   }, [displaySchema, enhanceSchema, clearError, onStageUpdate]);
+
+  // Handle suggestion apply/undo
+  const handleSuggestionAction = useCallback(async (suggestion: any, action: 'apply' | 'undo'): Promise<number | undefined> => {
+    try {
+      const scoreDelta = await applySuggestion(suggestion, action);
+      return scoreDelta;
+    } catch (error) {
+      throw error;
+    }
+  }, [applySuggestion]);
 
   // Add to history when schema changes
   const addToHistory = useCallback((schema: any, action: string) => {
@@ -281,174 +288,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     }
   }, [history, historyIndex, setCurrentSchema]);
 
-  // Undo individual suggestion
-  const handleUndoSuggestion = useCallback((index: number) => {
-    if (!appliedSuggestions.has(index) || !enhancements || !displaySchema) return;
-
-    // Get the base schema (before any suggestions)
-    // We need to go back to the schema before AI enhancement
-    const baseSchema = convertedSchema || currentSchema;
-    if (!baseSchema) return;
-
-    // Rebuild schema by applying ALL suggestions EXCEPT this one
-    let rebuiltSchema = JSON.parse(JSON.stringify(baseSchema));
-    
-    enhancements.forEach((enhancement, idx) => {
-      // Apply all applied suggestions except the one we're undoing
-      if (appliedSuggestions.has(idx) && idx !== index) {
-        const pathParts = enhancement.path.split('.');
-        let current = rebuiltSchema;
-        
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          if (!current[pathParts[i]]) {
-            current[pathParts[i]] = {};
-          }
-          current = current[pathParts[i]];
-        }
-
-        const lastKey = pathParts[pathParts.length - 1];
-        
-        if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
-          current[lastKey] = enhancement.newValue;
-        } else if (enhancement.changeType === 'removed') {
-          delete current[lastKey];
-        }
-      }
-    });
-
-    // Update schema
-    setCurrentSchema(rebuiltSchema);
-    
-    // Remove from applied set
-    setAppliedSuggestions(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(index);
-      return newSet;
-    });
-    
-    // Add to history
-    addToHistory(displaySchema, `Undid suggestion at ${enhancements[index].path}`);
-    
-    toast.success('Suggestion undone');
-  }, [appliedSuggestions, enhancements, displaySchema, convertedSchema, currentSchema, setCurrentSchema, addToHistory]);
-
-  // Apply individual suggestion
-  const handleApplySuggestion = useCallback((index: number) => {
-    if (!enhancements || !displaySchema) return;
-
-    const enhancement = enhancements[index];
-    const updatedSchema = JSON.parse(JSON.stringify(displaySchema));
-
-    // Apply the enhancement based on path
-    const pathParts = enhancement.path.split('.');
-    let current = updatedSchema;
-    
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      if (!current[pathParts[i]]) {
-        current[pathParts[i]] = {};
-      }
-      current = current[pathParts[i]];
-    }
-
-    const lastKey = pathParts[pathParts.length - 1];
-    
-    if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
-      current[lastKey] = enhancement.newValue;
-    } else if (enhancement.changeType === 'removed') {
-      delete current[lastKey];
-    }
-
-    // Add to history before making changes
-    addToHistory(displaySchema, `Applied: ${enhancement.reason}`);
-    
-    // Update schema
-    setCurrentSchema(updatedSchema);
-    
-    // Mark as applied
-    setAppliedSuggestions(prev => new Set(prev).add(index));
-    
-    toast.success('Suggestion applied!');
-  }, [enhancements, displaySchema, setCurrentSchema, addToHistory]);
-
-  // Apply all suggestions
-  const handleApplyAll = useCallback(() => {
-    if (!enhancements || enhancements.length === 0 || !displaySchema) return;
-
-    // Start with current schema
-    let updatedSchema = JSON.parse(JSON.stringify(displaySchema));
-
-    // Apply each unapplied suggestion sequentially
-    const unappliedIndices: number[] = [];
-    enhancements.forEach((enhancement, index) => {
-      if (!appliedSuggestions.has(index)) {
-        unappliedIndices.push(index);
-        
-        // Apply the enhancement
-        const pathParts = enhancement.path.split('.');
-        let current = updatedSchema;
-        
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          if (!current[pathParts[i]]) {
-            current[pathParts[i]] = {};
-          }
-          current = current[pathParts[i]];
-        }
-
-        const lastKey = pathParts[pathParts.length - 1];
-        
-        if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
-          current[lastKey] = enhancement.newValue;
-        } else if (enhancement.changeType === 'removed') {
-          delete current[lastKey];
-        }
-      }
-    });
-
-    if (unappliedIndices.length > 0) {
-      // Add to history
-      addToHistory(displaySchema, `Applied ${unappliedIndices.length} suggestions`);
-      
-      // Update schema
-      setCurrentSchema(updatedSchema);
-      
-      // Mark all as applied
-      setAppliedSuggestions(new Set(enhancements.map((_, idx) => idx)));
-      
-      toast.success(`Applied ${unappliedIndices.length} suggestions!`);
-    } else {
-      toast.info('All suggestions already applied');
-    }
-  }, [enhancements, appliedSuggestions, displaySchema, setCurrentSchema, addToHistory]);
-
-  // Undo all applied suggestions
-  const handleUndoAll = useCallback(() => {
-    const appliedCount = appliedSuggestions.size;
-    
-    if (appliedCount === 0) {
-      toast.info('No suggestions to undo');
-      return;
-    }
-
-    // Call undo for each applied suggestion
-    let successfulUndos = 0;
-    for (let i = 0; i < appliedCount; i++) {
-      if (historyIndex > 0) {
-        const previousIndex = historyIndex - 1 - i; // Account for already undone steps
-        if (previousIndex >= 0 && history[previousIndex]) {
-          setCurrentSchema(history[previousIndex].schema);
-          successfulUndos++;
-        }
-      }
-    }
-
-    if (successfulUndos > 0) {
-      setHistoryIndex(historyIndex - successfulUndos);
-      setAppliedSuggestions(new Set());
-      toast.success(`Undone ${successfulUndos} suggestion${successfulUndos > 1 ? 's' : ''}!`);
-    } else {
-      toast.error('Cannot undo - please use individual undo buttons');
-    }
-  }, [appliedSuggestions, historyIndex, history, setCurrentSchema]);
 
   const handleFileUpload = useCallback(() => {
     const input = document.createElement('input');
@@ -698,7 +537,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           </Button>
 
           {/* AI Suggestions */}
-          {enhancements && enhancements.length > 0 && (
+          {suggestions && suggestions.length > 0 && (
             <Button
               variant="outline"
               size="sm"
@@ -709,7 +548,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               <Sparkles className="h-4 w-4 flex-shrink-0 text-purple-600" />
               {sidebarExpanded && <span className="text-sm">AI Suggestions</span>}
               <Badge className="absolute -top-1 -right-1 bg-purple-600 text-white px-1.5 py-0.5 text-xs">
-                {enhancements.length}
+                {suggestions.length}
               </Badge>
             </Button>
           )}
@@ -720,16 +559,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               variant="outline"
               size="sm"
               onClick={() => setShowQualityMetrics(true)}
-              className={`w-full justify-start gap-3 h-10 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/20 ${!sidebarExpanded && 'px-2'}`}
-              title={!sidebarExpanded ? "View Quality Score" : undefined}
+              className={`w-full justify-start gap-3 h-10 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/20 relative ${!sidebarExpanded && 'px-2'}`}
+              title={!sidebarExpanded ? `Quality Score: ${qualityMetrics.qualityScore}` : undefined}
             >
               <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
               {sidebarExpanded && <span className="text-sm">Quality Score</span>}
-              {sidebarExpanded && (
-                <Badge className="ml-auto bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-0.5 text-xs font-bold">
-                  {qualityMetrics.qualityScore}
-                </Badge>
-              )}
+              <Badge className="absolute -top-1 -right-1 bg-green-600 text-white px-1.5 py-0.5 text-xs font-bold">
+                {qualityMetrics.qualityScore}
+              </Badge>
             </Button>
           )}
 
@@ -829,8 +666,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         </div>
       </div>
 
-      {/* AI Enhancement Suggestions Dialog */}
-      {showSuggestions && enhancements && enhancements.length > 0 && (
+      {/* AI Suggestions Dialog */}
+      {showSuggestions && suggestions && suggestions.length > 0 && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -838,13 +675,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
           >
-            <EnhancementsPanel
-              enhancements={enhancements}
-              onApplySuggestion={handleApplySuggestion}
-              onUndoSuggestion={handleUndoSuggestion}
-              appliedSuggestions={appliedSuggestions}
-              onApplyAll={handleApplyAll}
-              onUndoAll={handleUndoAll}
+            <SuggestionsPanel
+              suggestions={suggestions}
+              onApplySuggestion={handleSuggestionAction}
               onClose={() => setShowSuggestions(false)}
             />
           </motion.div>

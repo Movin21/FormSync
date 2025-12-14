@@ -124,3 +124,41 @@ export class UpdateSchemaDto {
   @IsString()
   changeLog?: string;
 }
+
+// ===== Apply/Undo Suggestion DTO =====
+export class ApplySuggestionDto {
+  @ApiProperty({ description: 'Base enhanced schema (before suggestions)' })
+  @IsObject()
+  baseSchema: any;
+
+  @ApiProperty({ description: 'The suggestion to apply/undo' })
+  @IsObject()
+  suggestion: any;
+
+  @ApiProperty({ description: 'All suggestions (for context)' })
+  @IsArray()
+  allSuggestions: any[];
+
+  @ApiProperty({ description: 'AI changes from original enhancement' })
+  @IsArray()
+  aiChanges: any[];
+
+  @ApiProperty({ description: 'Action to perform', enum: ['apply', 'undo'] })
+  @IsEnum(['apply', 'undo'])
+  action: 'apply' | 'undo';
+}
+
+// ===== Recalculate Quality DTO =====
+export class RecalculateQualityDto {
+  @ApiProperty({ description: 'Base enhanced schema (before suggestions)' })
+  @IsObject()
+  baseSchema: any;
+
+  @ApiProperty({ description: 'All suggestions with current applied state' })
+  @IsArray()
+  allSuggestions: any[];
+
+  @ApiProperty({ description: 'AI changes from original enhancement' })
+  @IsArray()
+  aiChanges: any[];
+}
