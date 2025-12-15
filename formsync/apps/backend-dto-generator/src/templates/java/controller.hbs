@@ -14,3 +14,8 @@ public class {{name}}Controller {
 
 @Autowired
 private {{name}}Service service;
+
+@GetMapping
+public List<{{name}}> getAll() {
+    return service.findAll();
+    }
