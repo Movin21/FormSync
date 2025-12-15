@@ -31,3 +31,13 @@ public List<{{name}}> getAll() {
         public {{name}} create(@RequestBody {{name}} entity) {
         return service.save(entity);
         }
+
+        @PutMapping("/{id}")
+        public ResponseEntity<{{name}}> update(@PathVariable Long id, @RequestBody {{name}} entity) {
+            return service.findById(id)
+            .map(existing -> {
+            entity.setId(id);
+            return ResponseEntity.ok(service.save(entity));
+            })
+            .orElse(ResponseEntity.notFound().build());
+            }
