@@ -45,3 +45,7 @@ private Long id;
 {{#eq type 'List'}}
 @ElementCollection
 {{/eq}}
+private {{toJavaType type referenceType}} {{name}};
+
+{{/each}}
+}
