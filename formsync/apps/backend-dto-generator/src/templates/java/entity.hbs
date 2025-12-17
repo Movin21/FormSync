@@ -36,3 +36,6 @@ private Long id;
 {{else}}
 {{#if constraints.maxLength}}
 @Size(max = {{constraints.maxLength}})
+{{/if}}
+{{/if}}
+{{#if constraints.pattern}}
