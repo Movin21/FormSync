@@ -11,7 +11,7 @@ export const Documentation: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Fixed Sidebar Navigation */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto fixed h-screen">
+      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto fixed h-screen left-0 top-0">
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Documentation</h2>
           
