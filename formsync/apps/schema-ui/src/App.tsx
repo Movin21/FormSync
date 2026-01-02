@@ -19,17 +19,19 @@ function App() {
             <Route 
               path="/" 
               element={
-                <PageTransition>
-                  <LandingPage />
-                </PageTransition>
+                <>
+                  <PageTransition>
+                    <LandingPage />
+                  </PageTransition>
+                  <Footer />
+                </>
               } 
             />
-            <Route path="/editor" element={<EditorPage />} />
+            <Route path="/editor" element={<><EditorPage /><Footer /></>} />
             <Route path="/documentation" element={<Documentation />} />
-            <Route path="/generated" element={<GeneratedCodePage />} />
+            <Route path="/generated" element={<><GeneratedCodePage /><Footer /></>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <Footer />
         </div>
       </Router>
       
