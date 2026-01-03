@@ -204,6 +204,46 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     }
   }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
 
+  // Quick Fix - Apply syntax corrections
+  const handleAIFix = useCallback(async () => {
+    if (!editorValue) {
+      toast.error('No code to fix');
+      return;
+    }
+
+    toast.loading('Applying quick fix...');
+
+    try {
+      // Call backend quick fix API
+      const response = await schemaApi.quickFixSyntax({ input: editorValue, format });
+      
+      if (response.data.fixedInput) {
+        // Update editor with fixed code
+        setEditorValue(response.data.fixedInput);
+        
+        toast.dismiss();
+        toast.success('Syntax errors fixed!', {
+          description: 'Your code has been corrected',
+        });
+       
+        // Close validation dialog
+        setShowValidationDialog(false);
+        setValidationError('');
+        setIsInputValid(true);
+      } else {
+        toast.dismiss();
+        toast.error('Could not automatically fix syntax', {
+          description: 'Please fix manually',
+        });
+      }
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error('Quick fix failed', {
+        description: error.response?.data?.message || 'Unable to apply fixes',
+      });
+    }
+  }, [editorValue, format]);
+
   // 3. AI Enhance
   const handleEnhance = useCallback(async () => {
     if (!displaySchema) {
@@ -338,55 +378,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleConvert]);
-
-  // Handle AI Fix for validation errors using LLM
-  const handleAIFix = useCallback(async () => {
-    if (!editorValue || !validationError) return;
-
-    toast.info('AI is analyzing and fixing your schema...', {
-      duration: 5000,
-    });
-    setIsInputValid(false);
-
-    try {
-      let fixedSchema: string;
-
-      // Try to use real LLM API first
-      try {
-        fixedSchema = await fixSchemaWithAI(editorValue, format, validationError);
-
-        toast.success('AI fixed your schema!', {
-          description: 'LLM service repaired the syntax errors',
-          duration: 4000,
-        });
-      } catch (apiError) {
-        // Fallback to mock fix if API is not available
-        console.log('Using local AI fix (LLM API not configured)');
-        fixedSchema = await mockAIFix(editorValue, format);
-
-        toast.success('Schema fixed!', {
-          description: 'Syntax errors have been repaired. Please validate.',
-          duration: 4000,
-        });
-      }
-
-      // Update the editor with the fixed schema
-      if (fixedSchema !== editorValue) {
-        setEditorValue(fixedSchema);
-      } else {
-        toast.info('No changes needed', {
-          description: 'Schema appears correct already',
-        });
-      }
-
-      setValidationError('');
-    } catch (error) {
-      toast.error('Failed to fix schema', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-      console.error('AI Fix error:', error);
-    }
-  }, [editorValue, format, validationError]);
 
   return (
     <div className="flex flex-col gap-4 h-full">
