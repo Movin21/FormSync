@@ -177,6 +177,32 @@ export class SchemaService {
   }
 
   /**
+   * POST /schema/validate-syntax
+   * Validate syntax ONLY without converting
+   * (NEW method for frontend validation button)
+   */
+  async validateSyntaxOnly(dto: ConvertSchemaDto) {
+    // Perform strict syntax validation (no conversion)
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
+    
+    if (!syntaxValidation.valid) {
+      // Return validation errors (don't throw, return structured response)
+      throw new BadRequestException({
+        message: 'Syntax validation failed',
+        syntaxErrors: syntaxValidation.syntaxErrors,
+        formatMismatch: syntaxValidation.formatMismatch,
+        syntaxSuggestions: syntaxValidation.syntaxSuggestions,
+      });
+    }
+    
+    // Syntax is valid - return success
+    return {
+      valid: true,
+      message: `Valid ${(dto.format || 'detected').toUpperCase()} syntax`,
+    };
+  }
+
+  /**
    * POST /schema/convert
    * Auto-detect format and convert to JSON Schema Draft-7
    * 
