@@ -9,6 +9,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import * as yaml from 'js-yaml';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { SchemaEnhancerService } from './schema-enhancer.service';
 
 export interface SyntaxError {
   type: 'syntax';
@@ -33,8 +34,16 @@ export interface ValidationResult {
   }>;
 }
 
+export interface QuickFixResult {
+  success: boolean;
+  fixedInput?: string;
+  confidence: 'deterministic' | 'ai' | 'manual';
+  message: string;
+}
+
 @Injectable()
 export class SchemaSyntaxValidator {
+  constructor(private readonly enhancerService: SchemaEnhancerService) {}
   /**
    * Perform strict syntax validation based on format
    */
@@ -377,18 +386,108 @@ export class SchemaSyntaxValidator {
 
   /**
    * Generate quick fixes for common syntax errors
-   * ONLY fixes syntax - NEVER changes schema meaning
+   * TIER 1: Deterministic fixes (fast)
+   * TIER 2: AI fixes (powerful)
+   * Returns confidence indicator
    */
-  attemptQuickFix(input: string, selectedFormat: 'json' | 'yaml' | 'xml'): string | null {
+  async attemptQuickFix(input: string, selectedFormat: 'json' | 'yaml' | 'xml'): Promise<QuickFixResult> {
+    // TIER 1: Try deterministic fix (fast, safe)
+    let deterministicFix: string | null = null;
+    
     switch (selectedFormat) {
       case 'json':
-        return this.quickFixJSON(input);
+        deterministicFix = this.quickFixJSON(input);
+        break;
       case 'yaml':
-        return this.quickFixYAML(input);
+        deterministicFix = this.quickFixYAML(input);
+        break;
       case 'xml':
-        return this.quickFixXML(input);
-      default:
+        deterministicFix = this.quickFixXML(input);
+        break;
+    }
+    
+    if (deterministicFix) {
+      return {
+        success: true,
+        fixedInput: deterministicFix,
+        confidence: 'deterministic',
+        message: 'Fixed automatically'
+      };
+    }
+    
+    // TIER 2: Try AI fix (smart, powerful)
+    try {
+      const aiFix = await this.aiQuickFix(input, selectedFormat);
+      
+      if (aiFix) {
+        // Re-validate the AI fix
+        const validation = this.validateSyntax(aiFix, selectedFormat);
+        
+        if (validation.valid) {
+          return {
+            success: true,
+            fixedInput: aiFix,
+            confidence: 'ai',
+            message: 'Fixed using AI'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('[QuickFix] AI fix failed:', error);
+    }
+    
+    // Cannot fix
+    return {
+      success: false,
+      confidence: 'manual',
+      message: 'Manual fix required'
+    };
+  }
+  
+  /**
+   * AI-powered syntax fix (TIER 2)
+   * Uses LLM to fix complex syntax errors
+   */
+  private async aiQuickFix(input: string, format: string): Promise<string | null> {
+    const prompt = `Fix ONLY the syntax errors in this ${format.toUpperCase()} code.
+
+STRICT RULES:
+1. Fix syntax errors ONLY (missing brackets, quotes, commas, etc.)
+2. Do NOT change any data values or structure
+3. Do NOT add new fields or properties
+4. Do NOT remove existing data
+5. If the syntax cannot be fixed without changing data or structure, return the original code unchanged.
+6. Return ONLY the fixed code, no explanations or markdown
+
+Code with syntax errors:
+${input}
+
+Fixed code:`;
+
+    try {
+      const response = await this.enhancerService.callLLM(prompt, 'syntax-fix');
+      
+      if (!response) {
         return null;
+      }
+      
+      // Clean up response (remove markdown if present)
+      let fixed = response.trim();
+      
+      // Remove markdown code blocks if present
+      if (fixed.startsWith('```')) {
+        fixed = fixed.replace(/```[a-z]*\n?/g, '').replace(/```$/g, '').trim();
+      }
+      
+      // If AI returned the same content, it couldn't fix
+      if (fixed === input.trim()) {
+        return null;
+      }
+      
+      return fixed;
+    } catch (error) {
+      console.error('[QuickFix] AI fix error:', error);
+      return null;
     }
   }
 
