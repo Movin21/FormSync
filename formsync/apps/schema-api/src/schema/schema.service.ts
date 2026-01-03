@@ -15,6 +15,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { SchemaQualityEngine } from './schema-quality-engine';
 import { SchemaEnhancerService } from './schema-enhancer.service';
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { SchemaSyntaxValidator } from './schema-syntax-validator';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
@@ -32,7 +34,8 @@ export class SchemaService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly qualityEngine: SchemaQualityEngine,
-    private readonly enhancerService: SchemaEnhancerService
+    private readonly enhancerService: SchemaEnhancerService,
+    private readonly syntaxValidator: SchemaSyntaxValidator
   ) {}
 
   /**
@@ -176,10 +179,25 @@ export class SchemaService {
   /**
    * POST /schema/convert
    * Auto-detect format and convert to JSON Schema Draft-7
+   * 
+   * ENHANCED: Performs STRICT SYNTAX VALIDATION before any processing
    */
   async convertSchema(dto: ConvertSchemaDto) {
-    // Check cache first (v2 cache for normalized schemas)
-    // Use crypto hash to avoid collisions from truncated keys
+    // STEP 1: STRICT SYNTAX VALIDATION (NEW)
+    // Validate syntax BEFORE any other processing
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
+    
+    if (!syntaxValidation.valid) {
+      // STOP processing on syntax errors
+      throw new BadRequestException({
+        message: 'Syntax validation failed',
+        syntaxErrors: syntaxValidation.syntaxErrors,
+        formatMismatch: syntaxValidation.formatMismatch,
+        syntaxSuggestions: syntaxValidation.syntaxSuggestions,
+      });
+    }
+    
+    // STEP 2: Check cache (only if syntax is valid)
     const crypto = await import('crypto');
     const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
     const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
@@ -189,6 +207,7 @@ export class SchemaService {
       return { ...cached, fromCache: true };
     }
 
+    // STEP 3: Proceed with parsing (syntax is valid)
     let parser;
 
     if (dto.format) {
