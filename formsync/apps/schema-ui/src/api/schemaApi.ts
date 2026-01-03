@@ -103,6 +103,9 @@ export const schemaApi = {
   // Convert schema
   convert: (data: ConvertSchemaRequest) => apiClient.post('/schema/convert', data),
 
+  // Validate syntax only (no conversion)
+  validateSyntax: (data: ConvertSchemaRequest) => apiClient.post('/schema/validate-syntax', data),
+
   // Enhance with AI
   enhance: (data: EnhanceSchemaRequest) => apiClient.post('/schema/enhance', data),
 
