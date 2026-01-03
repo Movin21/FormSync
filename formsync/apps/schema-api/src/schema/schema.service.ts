@@ -205,27 +205,28 @@ export class SchemaService {
   /**
   * POST /schema/quick-fix
    * Attempt to automatically fix syntax errors
-   * (NEW method for Quick Fix button)
+   * (Enhanced with AI fallback)
    */
   async quickFixSyntax(dto: ConvertSchemaDto) {
     // Validate the format
-    const format = dto.format || 'json'; // Default to JSON if not specified
+    const format = dto.format || 'json';
     
-    // Attempt quick fix
-    const fixedInput = this.syntaxValidator.attemptQuickFix(dto.input, format as any);
+    // Attempt quick fix (now async with AI fallback)
+    const result = await this.syntaxValidator.attemptQuickFix(dto.input, format as any);
     
-    if (!fixedInput) {
+    if (!result.success) {
       throw new BadRequestException({
-        message: 'Could not automatically fix syntax errors',
+        message: result.message,
         suggestion: 'Please fix the errors manually or use a more advanced fix option',
       });
     }
     
-    // Return the fixed input
+    // Return the fixed input with confidence indicator
     return {
       success: true,
-      fixedInput,
-      message: 'Syntax errors fixed',
+      fixedInput: result.fixedInput,
+      confidence: result.confidence,
+      message: result.message,
     };
   }
 
