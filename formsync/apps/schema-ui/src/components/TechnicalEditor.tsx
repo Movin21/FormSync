@@ -158,24 +158,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     onStageUpdate?.('Input Validation', 'loading');
 
     try {
-      // Validate that the input matches the selected format
-      const validation = validateInputFormat(editorValue, format);
-
-      if (!validation.isValid) {
-        setIsInputValid(false);
-        setValidationError(validation.error || 'Input does not match selected format');
-        onStageUpdate?.('Input Validation', 'error');
-
-        // Show validation dialog with error
-        setShowValidationDialog(true);
-
-        toast.error('Validation Failed', {
-          description: 'Click to see details',
-          duration: 3000,
-        });
-        return;
-      }
-
+      // Call backend conversion which includes syntax validation
+      await schemaApi.convertSchema(editorValue, format);
+      
       // Validation passed
       setIsInputValid(true);
       setValidationError('');
@@ -187,11 +172,47 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Show success dialog
       setShowValidationDialog(true);
-    } catch (error) {
+    } catch (error: any) {
       setIsInputValid(false);
-      setValidationError(error instanceof Error ? error.message : 'Validation failed');
+      
+      // Check if this is a syntax validation error from backend
+      if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
+        const backendError = error.response.data;
+        
+        // Format detailed error message
+        let errorMessage = '';
+        
+        if (backendError.formatMismatch) {
+          errorMessage = backendError.formatMismatch.message;
+        } else if (backendError.syntaxErrors && backendError.syntaxErrors.length > 0) {
+          const firstError = backendError.syntaxErrors[0];
+          errorMessage = firstError.message;
+          
+          // Add location info if available
+          if (firstError.line) {
+            errorMessage += ` (Line ${firstError.line}`;
+            if (firstError.column) {
+              errorMessage += `, Column ${firstError.column}`;
+            }
+            errorMessage += ')';
+          }
+        }
+        
+        setValidationError(errorMessage || 'Syntax validation failed');
+      } else {
+        // Other errors
+        setValidationError(error.response?.data?.message || error.message || 'Validation failed');
+      }
+      
       onStageUpdate?.('Input Validation', 'error');
-      toast.error('Validation failed');
+
+      toast.error('Validation Failed', {
+        description: 'Click to see details',
+        duration: 3000,
+      });
+      
+      // Show validation dialog with error
+      setShowValidationDialog(true);
     } finally {
       setValidateLoading(false);
     }
