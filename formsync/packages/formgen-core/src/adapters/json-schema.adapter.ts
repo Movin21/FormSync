@@ -126,9 +126,23 @@ export function parseJsonSchemaToFormModel(schema: JsonSchema): FormModel {
 
     // 3. Default Theme
     const theme: ThemeConfig = {
-        primaryColor: '#000000',
-        fontFamily: 'Inter, sans-serif',
+        mode: 'light',
+        density: 'normal',
         radius: 4,
+        colors: {
+            primary: '#000000',
+            background: '#ffffff',
+            surface: '#ffffff',
+            text: '#111827',
+            muted: '#6b7280',
+            border: '#e5e7eb',
+            error: '#ef4444',
+            inputBackground: '#ffffff',
+        },
+        typography: {
+            fontFamily: 'Inter, sans-serif',
+            baseFontSize: 16,
+        }
     };
 
     // 4. Construct Final Model

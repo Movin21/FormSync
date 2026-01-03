@@ -11,7 +11,8 @@ interface BuilderState {
 type BuilderAction =
     | { type: 'SELECT_FIELD'; payload: string | null }
     | { type: 'UPDATE_FORM'; payload: FormModel }
-    | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } };
+    | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } }
+    | { type: 'UPDATE_THEME'; payload: Partial<FormModel['theme']> };
 
 // --- Initial State ---
 // Minimal default state to avoid crashes before data is loaded
@@ -20,7 +21,25 @@ const initialState: BuilderState = {
         id: 'default',
         name: 'Loading...',
         version: '1.0.0',
-        theme: { primaryColor: '#000', fontFamily: 'sans-serif', radius: 4 },
+        theme: {
+            mode: 'light',
+            density: 'normal',
+            radius: 4,
+            colors: {
+                primary: '#3b82f6',
+                background: '#ffffff',
+                surface: '#ffffff',
+                text: '#111827',
+                muted: '#6b7280',
+                border: '#e5e7eb',
+                error: '#ef4444',
+                inputBackground: '#ffffff',
+            },
+            typography: {
+                fontFamily: 'Inter, sans-serif',
+                baseFontSize: 16,
+            }
+        },
         layout: { order: [] },
         fields: [],
     },
@@ -44,6 +63,14 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
                             ? { ...field, ...action.payload.updates }
                             : field
                     ),
+                },
+            };
+        case 'UPDATE_THEME':
+            return {
+                ...state,
+                form: {
+                    ...state.form,
+                    theme: { ...state.form.theme, ...action.payload },
                 },
             };
         default:
