@@ -7,14 +7,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useSchemaStore } from '../stores/schemaStore';
+import { schemaApi } from '../api/schemaApi';
 import { FormatSelector, type FormatType } from './FormatSelector';
 import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
 import { SuggestionsPanel } from './SuggestionsPanel';
 import { ValidationDialog } from './ValidationDialog';
 import { QualityMetricsPanel } from './QualityMetricsPanel';
-import { GenerateButton } from './shared/GenerateButton';
-import { fixSchemaWithAI, mockAIFix } from '../services/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -46,12 +45,16 @@ interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
   onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
+  onNextToFormBuilder?: () => void;
+  stages?: any[];
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onGenerate,
   isGenerating = false,
   onStageUpdate,
+  onNextToFormBuilder,
+  stages = [],
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -107,46 +110,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   );
 
   // Helper function to validate input format
-  const validateInputFormat = (
-    input: string,
-    expectedFormat: FormatType
-  ): { isValid: boolean; error?: string } => {
-    try {
-      if (expectedFormat === 'json') {
-        JSON.parse(input);
-        return { isValid: true };
-      } else if (expectedFormat === 'yaml') {
-        // Basic YAML validation - check for common issues
-        if (input.includes('\t')) {
-          return { isValid: false, error: 'YAML cannot contain tabs. Use spaces for indentation.' };
-        }
-        // Additional YAML checks can be added here
-        return { isValid: true };
-      } else if (expectedFormat === 'xml') {
-        // Basic XML validation
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(input, 'text/xml');
-        const parseError = doc.querySelector('parsererror');
-        if (parseError) {
-          return { isValid: false, error: 'Invalid XML format' };
-        }
-        return { isValid: true };
-      }
-      return { isValid: true };
-    } catch (error) {
-      if (expectedFormat === 'json') {
-        return {
-          isValid: false,
-          error: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}`,
-        };
-      }
-      return { isValid: false, error: `Invalid ${expectedFormat.toUpperCase()} format` };
-    }
-  };
-
   // Handlers - NEW ORDER: Validate → Convert → Enhance
 
-  // 1. Validate raw input first
+  // 1. Validate raw input first (ONLY validates, does NOT convert)
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
       toast.error('Please enter some code to validate');
@@ -158,23 +124,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     onStageUpdate?.('Input Validation', 'loading');
 
     try {
-      // Validate that the input matches the selected format
-      const validation = validateInputFormat(editorValue, format);
-
-      if (!validation.isValid) {
-        setIsInputValid(false);
-        setValidationError(validation.error || 'Input does not match selected format');
-        onStageUpdate?.('Input Validation', 'error');
-
-        // Show validation dialog with error
-        setShowValidationDialog(true);
-
-        toast.error('Validation Failed', {
-          description: 'Click to see details',
-          duration: 3000,
-        });
-        return;
-      }
+      // Call backend syntax validation API (validation only, no conversion)
+      await schemaApi.validateSyntax({ input: editorValue, format });
 
       // Validation passed
       setIsInputValid(true);
@@ -185,17 +136,69 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         description: 'You can now convert to JSON Schema',
       });
 
+      // Special case: If format is already JSON, also trigger semantic validation
+      if (format === 'json') {
+        try {
+          const schema = JSON.parse(editorValue);
+          // Only validate if it looks like a schema (has type or properties)
+          // or just simple validation
+          if (typeof schema === 'object' && schema !== null) {
+            await useSchemaStore.getState().validateSchema(schema);
+            // Also update current schema in store if it's JSON
+            setCurrentSchema(schema);
+          }
+        } catch (e) {
+          // Ignore parse errors here as syntax check passed
+        }
+      }
+
       // Show success dialog
       setShowValidationDialog(true);
-    } catch (error) {
+    } catch (error: any) {
       setIsInputValid(false);
-      setValidationError(error instanceof Error ? error.message : 'Validation failed');
+
+      // Check if this is a syntax validation error from backend
+      if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
+        const backendError = error.response.data;
+
+        // Format detailed error message
+        let errorMessage = '';
+
+        if (backendError.formatMismatch) {
+          errorMessage = backendError.formatMismatch.message;
+        } else if (backendError.syntaxErrors && backendError.syntaxErrors.length > 0) {
+          const firstError = backendError.syntaxErrors[0];
+          errorMessage = firstError.message;
+
+          // Add location info if available
+          if (firstError.line) {
+            errorMessage += ` (Line ${firstError.line}`;
+            if (firstError.column) {
+              errorMessage += `, Column ${firstError.column}`;
+            }
+            errorMessage += ')';
+          }
+        }
+
+        setValidationError(errorMessage || 'Syntax validation failed');
+      } else {
+        // Other errors
+        setValidationError(error.response?.data?.message || error.message || 'Validation failed');
+      }
+
       onStageUpdate?.('Input Validation', 'error');
-      toast.error('Validation failed');
+
+      toast.error('Validation Failed', {
+        description: 'Click to see details',
+        duration: 3000,
+      });
+
+      // Show validation dialog with error
+      setShowValidationDialog(true);
     } finally {
       setValidateLoading(false);
     }
-  }, [editorValue, format, clearError, onStageUpdate]);
+  }, [editorValue, format, clearError, onStageUpdate, setCurrentSchema]);
 
   // 2. Convert to JSON Schema
   const handleConvert = useCallback(async () => {
@@ -208,9 +211,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     setConvertLoading(true);
     onStageUpdate?.('Schema Conversion', 'loading');
     try {
-      await convertSchema(editorValue, format);
+      // Convert and get the schema back (updated store action returns it)
+      const schema = await convertSchema(editorValue, format);
+
       toast.success('Schema converted to JSON Schema successfully!');
       onStageUpdate?.('Schema Conversion', 'complete');
+
+      // Trigger semantic validation on the converted schema
+      if (schema) {
+        // onStageUpdate?.('Input Validation', 'loading'); // REMOVED: Keep it green since it was already validated 
+        // Actually Input Validation stage is technically done, but we need semantic validity for generation
+        await useSchemaStore.getState().validateSchema(schema);
+        // We don't necessarily need to show a toast here as convert success is shown
+      }
+
     } catch (error) {
       toast.error('Failed to convert schema');
       onStageUpdate?.('Schema Conversion', 'error');
@@ -218,6 +232,64 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setConvertLoading(false);
     }
   }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
+
+  // Quick Fix - Apply syntax corrections
+  const handleAIFix = useCallback(async () => {
+    if (!editorValue) {
+      toast.error('No code to fix');
+      return;
+    }
+
+    toast.loading('Applying quick fix...');
+
+    try {
+      // Call backend quick fix API
+      const response = await schemaApi.quickFixSyntax({ input: editorValue, format });
+
+      if (response.data.fixedInput) {
+        // Update editor with fixed code
+        setEditorValue(response.data.fixedInput);
+
+        toast.dismiss();
+
+        // Show different message based on confidence
+        const confidenceMessage = response.data.confidence === 'deterministic'
+          ? 'Fixed automatically'
+          : 'Fixed using Quick Fix';
+
+        toast.success('Syntax errors fixed!', {
+          description: confidenceMessage,
+        });
+
+        // Close validation dialog
+        setShowValidationDialog(false);
+        setValidationError('');
+        setIsInputValid(true);
+      } else {
+        toast.dismiss();
+        toast.error('Could not automatically fix syntax', {
+          description: 'Please fix manually',
+        });
+      }
+    } catch (error: any) {
+      toast.dismiss();
+
+      // Check if this is a "cannot fix" error
+      const errorMessage = error.response?.data?.message || '';
+
+      if (errorMessage.includes('Could not automatically fix')) {
+        toast.error('Cannot auto-fix this format', {
+          description: format === 'xml'
+            ? 'XML syntax is too complex to auto-fix. Please correct manually.'
+            : 'This syntax error is too complex to fix automatically.',
+        });
+      } else {
+        toast.error('Quick fix failed', {
+          description: error.response?.data?.message || 'Unable to apply fixes',
+        });
+      }
+    }
+  }, [editorValue, format]);
 
   // 3. AI Enhance
   const handleEnhance = useCallback(async () => {
@@ -354,59 +426,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleConvert]);
 
-  // Handle AI Fix for validation errors using LLM
-  const handleAIFix = useCallback(async () => {
-    if (!editorValue || !validationError) return;
-
-    toast.info('AI is analyzing and fixing your schema...', {
-      duration: 5000,
-    });
-    setIsInputValid(false);
-
-    try {
-      let fixedSchema: string;
-
-      // Try to use real LLM API first
-      try {
-        fixedSchema = await fixSchemaWithAI(editorValue, format, validationError);
-
-        toast.success('AI fixed your schema!', {
-          description: 'LLM service repaired the syntax errors',
-          duration: 4000,
-        });
-      } catch (apiError) {
-        // Fallback to mock fix if API is not available
-        console.log('Using local AI fix (LLM API not configured)');
-        fixedSchema = await mockAIFix(editorValue, format);
-
-        toast.success('Schema fixed!', {
-          description: 'Syntax errors have been repaired. Please validate.',
-          duration: 4000,
-        });
-      }
-
-      // Update the editor with the fixed schema
-      if (fixedSchema !== editorValue) {
-        setEditorValue(fixedSchema);
-      } else {
-        toast.info('No changes needed', {
-          description: 'Schema appears correct already',
-        });
-      }
-
-      setValidationError('');
-    } catch (error) {
-      toast.error('Failed to fix schema', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-      console.error('AI Fix error:', error);
-    }
-  }, [editorValue, format, validationError]);
-
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Header Row: Format Selector (Left) + Generate Button (Right) */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Header Row: Format Selector (Left) + Next: Form Builder Button (Right) */}
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         {/* Left: Format Selector */}
         <div>
           <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
@@ -415,10 +438,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Generate Code Button */}
-        {onGenerate && (
+        {/* Right: Next: Form Builder Button - Shows after Convert OR AI Enhancement is complete */}
+        {onNextToFormBuilder && stages.length > 0 && (stages[2]?.status === 'complete' || stages[3]?.status === 'complete') && (
           <div className="flex items-end">
-            <GenerateButton onClick={onGenerate} isGenerating={isGenerating} disabled={false} />
+            <Button
+              onClick={onNextToFormBuilder}
+              size="lg"
+              className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white px-8 py-3 text-base font-semibold rounded-xl transition-all hover:scale-105"
+            >
+              <Sparkles className="h-5 w-5" />
+              Next: Form Builder
+            </Button>
           </div>
         )}
       </div>

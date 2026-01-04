@@ -11,8 +11,9 @@
 import { FormatParserPlugin } from './interfaces/FormatParserPlugin';
 import { SchemaValidatorPlugin } from './interfaces/SchemaValidatorPlugin';
 import { LLMProviderPlugin } from './interfaces/LLMProviderPlugin';
+import { RuntimeGeneratorPlugin } from './interfaces/RuntimeGeneratorPlugin';
 
-export type PluginType = 'parser' | 'validator' | 'llm';
+export type PluginType = 'parser' | 'validator' | 'llm' | 'runtime-generator';
 
 export interface PluginConfig {
   type: PluginType;
@@ -26,6 +27,7 @@ export class PluginRegistry {
   private parsers: Map<string, FormatParserPlugin> = new Map();
   private validators: Map<string, SchemaValidatorPlugin> = new Map();
   private llmProviders: Map<string, LLMProviderPlugin> = new Map();
+  private runtimeGenerators: Map<string, RuntimeGeneratorPlugin> = new Map();
 
   private constructor() {}
 
@@ -61,6 +63,14 @@ export class PluginRegistry {
   registerLLMProvider(plugin: LLMProviderPlugin): void {
     this.llmProviders.set(plugin.name, plugin);
     console.log(`[PluginRegistry] Registered LLM provider: ${plugin.name}`);
+  }
+
+  /**
+   * Register a runtime generator plugin
+   */
+  registerRuntimeGenerator(plugin: RuntimeGeneratorPlugin): void {
+    this.runtimeGenerators.set(plugin.name, plugin);
+    console.log(`[PluginRegistry] Registered runtime generator: ${plugin.name}`);
   }
 
   /**
@@ -106,6 +116,20 @@ export class PluginRegistry {
   }
 
   /**
+   * Get a specific runtime generator by name
+   */
+  getRuntimeGenerator(name: string): RuntimeGeneratorPlugin | undefined {
+    return this.runtimeGenerators.get(name);
+  }
+
+  /**
+   * Get all registered runtime generators
+   */
+  getAllRuntimeGenerators(): RuntimeGeneratorPlugin[] {
+    return Array.from(this.runtimeGenerators.values());
+  }
+
+  /**
    * Auto-detect and get the appropriate parser for input
    */
   detectParser(input: string): FormatParserPlugin | undefined {
@@ -124,16 +148,18 @@ export class PluginRegistry {
     this.parsers.clear();
     this.validators.clear();
     this.llmProviders.clear();
+    this.runtimeGenerators.clear();
   }
 
   /**
    * Get registry statistics
    */
-  getStats(): { parsers: number; validators: number; llmProviders: number } {
+  getStats(): { parsers: number; validators: number; llmProviders: number; runtimeGenerators: number } {
     return {
       parsers: this.parsers.size,
       validators: this.validators.size,
       llmProviders: this.llmProviders.size,
+      runtimeGenerators: this.runtimeGenerators.size,
     };
   }
 }
