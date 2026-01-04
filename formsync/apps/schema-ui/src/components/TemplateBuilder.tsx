@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, Save, FileJson, Trash2, ArrowRight, Check } from 'lucide-react';
+import { Plus, FileJson, Trash2, ArrowRight, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -104,17 +104,6 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     toast.success('Schema transferred to Technical Editor! Switch to Technical Editor tab to continue.');
   };
 
-  const handleSave = () => {
-    const schema = generateSchema();
-    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'schema.json';
-    a.click();
-    toast.success('Schema downloaded');
-  };
-
   return (
     <div className="h-full flex gap-4">
       {/* Left Panel - Field Creation */}
@@ -173,10 +162,14 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
           <Button
             onClick={addField}
-            className="w-full gap-2 py-6 text-base font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white hover:scale-105 transition-all shadow-lg"
+            size="lg"
+            variant="outline"
+            className="w-full gap-2 py-6 text-base font-semibold border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all"
           >
-            <Plus className="h-5 w-5" />
-            Add Field to Schema
+            <Plus className="h-5 w-5 text-indigo-600" />
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+              Add Field to Schema
+            </span>
           </Button>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
@@ -195,27 +188,19 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               <FileJson className="h-5 w-5" />
               Schema Fields ({fields.length})
             </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleUseSchema}
-                disabled={fields.length === 0}
-                className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Check className="h-4 w-4" />
+            <Button
+              onClick={handleUseSchema}
+              disabled={fields.length === 0}
+              size="lg"
+              variant="outline"
+              className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Check className="h-5 w-5 text-green-600" />
+              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">
                 Use Schema in Editor
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={handleSave}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={fields.length === 0}
-              >
-                <Save className="h-4 w-4" />
-                Download
-              </Button>
-            </div>
+              </span>
+              <ArrowRight className="h-5 w-5 text-green-600" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
@@ -260,7 +245,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                         onClick={() => toggleRequired(field.id)}
                         className={`min-w-[100px] ${
                           field.required
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white'
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-00 hover:from-indigo-700 hover:to-purple-700 text-white'
                             : 'border-2 border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'
                         }`}
                       >
