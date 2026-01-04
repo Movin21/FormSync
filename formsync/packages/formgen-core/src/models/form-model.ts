@@ -20,6 +20,7 @@ export type FieldType =
     | 'checkbox'
     | 'textarea'
     | 'date'
+    | 'group'
     | 'unknown';
 
 export interface FieldConstraints {
@@ -32,13 +33,22 @@ export interface FieldConstraints {
     [key: string]: string | number | boolean | string[] | undefined; // Extensible
 }
 
+export interface FieldStyleOverrides {
+    labelColor?: string;
+    inputTextColor?: string;
+    borderColor?: string;
+    backgroundColor?: string;
+    focusColor?: string;
+}
+
 export interface FieldUIConfig {
     placeholder?: string;
     helpText?: string;
     hidden?: boolean;
     disabled?: boolean;
     style?: Record<string, string | number>; // Minimal inline styles
-    [key: string]: string | number | boolean | Record<string, unknown> | undefined;
+    styleOverrides?: FieldStyleOverrides;
+    [key: string]: string | number | boolean | Record<string, unknown> | FieldStyleOverrides | undefined;
 }
 
 export interface FieldModel {
@@ -53,21 +63,47 @@ export interface FieldModel {
     defaultValue?: string | number | boolean | null;
     constraints?: FieldConstraints;
     ui?: FieldUIConfig;
+    /** Recursive children for groups */
+    children?: FieldModel[];
+}
+
+export interface ThemeColors {
+    primary: string;
+    background: string;
+    surface: string;
+    text: string;
+    muted: string;
+    border: string;
+    error: string;
+    inputBackground: string;
 }
 
 export interface ThemeConfig {
-    primaryColor: string;
-    fontFamily: string;
+    mode: 'light' | 'dark';
+    density: 'compact' | 'normal' | 'comfortable';
+    colors: ThemeColors;
+    schemes?: {
+        light: ThemeColors;
+        dark: ThemeColors;
+    };
+    typography: {
+        fontFamily: string;
+        baseFontSize: number;
+    };
     /** consistent radius unit */
     radius: number;
-    background?: string;
-    surface?: string;
-    textColor?: string;
+    // Legacy fallback compatibility optional
+    primaryColor?: string;
 }
 
 export interface LayoutConfig {
     /** Ordered list of Field IDs to determine render sequence */
     order: string[];
+}
+
+export interface SubmitConfig {
+    text: string;
+    color?: string;
 }
 
 export interface FormModel {
@@ -81,4 +117,5 @@ export interface FormModel {
     theme: ThemeConfig;
     layout: LayoutConfig;
     fields: FieldModel[];
+    submit?: SubmitConfig;
 }
