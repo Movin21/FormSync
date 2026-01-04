@@ -225,8 +225,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-xl border-2 border-transparent bg-gradient-to-br from-indigo-500 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
-                        <div className="absolute inset-0.5 bg-white dark:bg-neutral-800 rounded-lg"></div>
+                      <div className="w-12 h-12 rounded-xl border border-transparent bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
+                        <div className="absolute inset-[1.5px] bg-white dark:bg-neutral-800 rounded-lg"></div>
                         <span className="relative z-10 bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold text-lg">
                           {field.name[0].toUpperCase()}
                         </span>
