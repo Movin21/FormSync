@@ -14,8 +14,6 @@ import { SchemaTreeView } from './SchemaTreeView';
 import { SuggestionsPanel } from './SuggestionsPanel';
 import { ValidationDialog } from './ValidationDialog';
 import { QualityMetricsPanel } from './QualityMetricsPanel';
-import { GenerateButton } from './shared/GenerateButton';
-import { fixSchemaWithAI, mockAIFix } from '../services/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -47,12 +45,16 @@ interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
   onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
+  onNextToFormBuilder?: () => void;
+  stages?: any[];
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onGenerate,
   isGenerating = false,
   onStageUpdate,
+  onNextToFormBuilder,
+  stages = [],
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -426,8 +428,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Header Row: Format Selector (Left) + Generate Button (Right) */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Header Row: Format Selector (Left) + Next: Form Builder Button (Right) */}
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         {/* Left: Format Selector */}
         <div>
           <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
@@ -436,12 +438,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Generate Code Button - HIDDEN (backend download now available from Form Builder) */}
-        {/* {onGenerate && (
+        {/* Right: Next: Form Builder Button - Shows after Convert OR AI Enhancement is complete */}
+        {onNextToFormBuilder && stages.length > 0 && (stages[2]?.status === 'complete' || stages[3]?.status === 'complete') && (
           <div className="flex items-end">
-            <GenerateButton onClick={onGenerate} isGenerating={isGenerating} disabled={false} />
+            <Button
+              onClick={onNextToFormBuilder}
+              size="lg"
+              className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white px-8 py-3 text-base font-semibold rounded-xl transition-all hover:scale-105"
+            >
+              <Sparkles className="h-5 w-5" />
+              Next: Form Builder
+            </Button>
           </div>
-        )} */}
+        )}
       </div>
 
       {/* Action Buttons Row - Below Format Selector */}
