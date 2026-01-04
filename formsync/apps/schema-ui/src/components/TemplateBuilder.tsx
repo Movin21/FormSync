@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check, Copy, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
+import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -230,25 +230,17 @@ const SCHEMA_TEMPLATES: SchemaTemplate[] = [
 interface SortableFieldItemProps {
   field: SchemaField;
   index: number;
-  totalFields: number;
   onToggleRequired: (id: string) => void;
-  onDuplicate: (id: string) => void;
   onRemove: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<SchemaField>) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
+  onEdit: (id: string) => void;
 }
 
 const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ 
   field, 
   index, 
-  totalFields, 
   onToggleRequired, 
-  onDuplicate, 
   onRemove,
-  onUpdate,
-  isExpanded,
-  onToggleExpand
+  onEdit
 }) => {
   const {
     attributes,
@@ -301,122 +293,8 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = ({
           </div>
       </div>
 
-      {/* Expandable Validation Editor */}
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-          <h4 className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Validation Rules</h4>
-          <div className="grid grid-cols-2 gap-3">
-            {/* String validations */}
-            {field.type === 'string' && (
-              <>
-                <div>
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Min Length</label>
-                  <input
-                    type="number"
-                    value={field.minLength || ''}
-                    onChange={(e) => onUpdate(field.id, { minLength: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                    placeholder="Min"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Max Length</label>
-                  <input
-                    type="number"
-                    value={field.maxLength || ''}
-                    onChange={(e) => onUpdate(field.id, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                    placeholder="Max"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Pattern (Regex)</label>
-                  <input
-                    type="text"
-                    value={field.pattern || ''}
-                    onChange={(e) => onUpdate(field.id, { pattern: e.target.value || undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
-                    placeholder="e.g., ^[A-Z].*"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Format</label>
-                  <select
-                    value={field.format || ''}
-                    onChange={(e) => onUpdate(field.id, { format: e.target.value || undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                  >
-                    <option value="">None</option>
-                    <option value="email">Email</option>
-                    <option value="uri">URL</option>
-                    <option value="date">Date</option>
-                    <option value="time">Time</option>
-                    <option value="date-time">DateTime</option>
-                  </select>
-                </div>
-              </>
-            )}
-            
-            {/* Number validations */}
-            {(field.type === 'number' || field.type === 'integer') && (
-              <>
-                <div>
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Minimum</label>
-                  <input
-                    type="number"
-                    value={field.minimum !== undefined ? field.minimum : ''}
-                    onChange={(e) => onUpdate(field.id, { minimum: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                    placeholder="Min value"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Maximum</label>
-                  <input
-                    type="number"
-                    value={field.maximum !== undefined ? field.maximum : ''}
-                    onChange={(e) => onUpdate(field.id, { maximum: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                    placeholder="Max value"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={onToggleExpand}
-            className="mt-3 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            Hide Validation
-          </button>
-        </div>
-      )}
-
       <div className="flex items-center gap-2 mt-3">
-        {/* Edit Validation Button */}
-        {!isExpanded && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onToggleExpand}
-            className="hover:bg-indigo-100 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xs"
-            title="Edit validation"
-          >
-            Edit Validation
-          </Button>
-        )}
-          {/* Duplicate Button */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onDuplicate(field.id)}
-            className="hover:bg-purple-100 dark:hover:bg-purple-950/30 text-purple-600 dark:text-purple-400"
-            title="Duplicate field"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-
-          {/* Required/Optional Toggle */}
+        {/* Required/Optional Toggle */}
           <Button
             size="sm"
             variant="outline"
@@ -434,6 +312,18 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = ({
               <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
             )}
           </Button>
+        {/* Edit Field Button - Opens Modal */}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onEdit(field.id)}
+          className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+          title="Edit field"
+        >
+          <span className="text-xs">✏️ Edit</span>
+        </Button>
+
+          
 
           {/* Delete Button */}
           <Button
@@ -509,20 +399,6 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     };
     setFields([...fields, newField]);
     toast.success(`${template.name} field added!`);
-  };
-
-  // Duplicate field
-  const duplicateField = (id: string) => {
-    const fieldToDup = fields.find(f => f.id === id);
-    if (fieldToDup) {
-      const newField: SchemaField = {
-        ...fieldToDup,
-        id: `field-${Date.now()}`,
-        name: `${fieldToDup.name}_copy`
-      };
-      setFields([...fields, newField]);
-      toast.success('Field duplicated');
-    }
   };
 
   // Update field properties (for validation editing)
@@ -769,13 +645,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                       key={field.id}
                       field={field}
                       index={index}
-                      totalFields={fields.length}
                       onToggleRequired={toggleRequired}
-                      onDuplicate={duplicateField}
                       onRemove={removeField}
-                      onUpdate={updateField}
-                      isExpanded={expandedFieldId === field.id}
-                      onToggleExpand={() => setExpandedFieldId(expandedFieldId === field.id ? null : field.id)}
+                      onEdit={() => setExpandedFieldId(field.id)}
                     />
                   ))}
                 </div>
@@ -835,6 +707,154 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Field Edit Modal */}
+      {expandedFieldId && (() => {
+        const editField = fields.find(f => f.id === expandedFieldId);
+        if (!editField) return null;
+        
+        return (
+          <AlertDialog open={true} onOpenChange={() => setExpandedFieldId(null)}>
+            <AlertDialogContent className="max-w-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Edit Field: {editField.name}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Modify field properties and validation rules
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              
+              <div className="space-y-4 my-4">
+                {/* Basic Info Section */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Basic Information</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Field Name</label>
+                      <input
+                        type="text"
+                        value={editField.name}
+                        onChange={(e) => updateField(editField.id, { name: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Type</label>
+                      <select
+                        value={editField.type}
+                        onChange={(e) => updateField(editField.id, { type: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                      >
+                        <option value="string">String</option>
+                        <option value="number">Number</option>
+                        <option value="integer">Integer</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="array">Array</option>
+                        <option value="object">Object</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={editField.description || ''}
+                        onChange={(e) => updateField(editField.id, { description: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                        placeholder="Optional description"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validation Rules Section */}
+                {editField.type === 'string' && (
+                  <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Validation Rules</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Min Length</label>
+                        <input
+                          type="number"
+                          value={editField.minLength || ''}
+                          onChange={(e) => updateField(editField.id, { minLength: e.target.value ? Number(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          placeholder="Minimum"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Max Length</label>
+                        <input
+                          type="number"
+                          value={editField.maxLength || ''}
+                          onChange={(e) => updateField(editField.id, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          placeholder="Maximum"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Pattern (Regex)</label>
+                        <input
+                          type="text"
+                          value={editField.pattern || ''}
+                          onChange={(e) => updateField(editField.id, { pattern: e.target.value || undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
+                          placeholder="e.g., ^[A-Z][a-z]+$"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Format</label>
+                        <select
+                          value={editField.format || ''}
+                          onChange={(e) => updateField(editField.id, { format: e.target.value || undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                        >
+                          <option value="">None</option>
+                          <option value="email">Email</option>
+                          <option value="uri">URL</option>
+                          <option value="date">Date</option>
+                          <option value="time">Time</option>
+                          <option value="date-time">DateTime</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(editField.type === 'number' || editField.type === 'integer') && (
+                  <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Validation Rules</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Minimum</label>
+                        <input
+                          type="number"
+                          value={editField.minimum !== undefined ? editField.minimum : ''}
+                          onChange={(e) => updateField(editField.id, { minimum: e.target.value ? Number(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          placeholder="Min value"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Maximum</label>
+                        <input
+                          type="number"
+                          value={editField.maximum !== undefined ? editField.maximum : ''}
+                          onChange={(e) => updateField(editField.id, { maximum: e.target.value ? Number(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          placeholder="Max value"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <AlertDialogCancel className="mt-0" onClick={() => setExpandedFieldId(null)}>Done</AlertDialogCancel>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
+        );
+      })()}
     </div>
   );
 };
