@@ -109,20 +109,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     [onStageUpdate]
   );
 
-  // Track if we've already loaded this schema to prevent infinite toast
-  const loadedSchemaRef = React.useRef<string>('');
-
   // Populate editor when schema is transferred from Template Builder
   useEffect(() => {
-    if (schemaFromBuilder && schemaFromBuilder.trim() && loadedSchemaRef.current !== schemaFromBuilder) {
-      loadedSchemaRef.current = schemaFromBuilder;
+    if (schemaFromBuilder && schemaFromBuilder.trim() && schemaFromBuilder !== editorValue) {
       setEditorValue(schemaFromBuilder);
       setFormat('json'); // Template Builder always generates JSON
       toast.success('Schema loaded from Template Builder!');
       onStageUpdate?.('Enter Schema', 'complete');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schemaFromBuilder]); // Only depend on schemaFromBuilder
+  }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
@@ -677,6 +673,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <Editor
+                key={editorValue ? `editor-loaded-${editorValue.length}` : 'editor-empty'}
                 height="100%"
                 language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}

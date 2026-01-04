@@ -54,10 +54,15 @@ export const EditorPage: React.FC = () => {
   // Handler to receive schema from Template Builder
   const handleUseSchemaFromBuilder = (schemaJson: string) => {
     setSchemaFromBuilder(schemaJson);
-    // Auto-switch to Technical Editor tab
-    setActiveTab('technical');
-    toast.success('Schema transferred! Now in Technical Editor.');
   };
+
+  // Auto-switch to Technical Editor tab AFTER schemaFromBuilder state is set
+  React.useEffect(() => {
+    if (schemaFromBuilder && schemaFromBuilder.trim()) {
+      setActiveTab('technical');
+      toast.success('Schema transferred! Now in Technical Editor.');
+    }
+  }, [schemaFromBuilder]);
 
   const handleGenerate = async () => {
     // Validation check - show error if not valid
@@ -243,6 +248,7 @@ export const EditorPage: React.FC = () => {
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
                   onStageUpdate={handleStageUpdate}
+                  schemaFromBuilder={schemaFromBuilder}
                 />
               </TabsContent>
 
