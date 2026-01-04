@@ -219,7 +219,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Trigger semantic validation on the converted schema
       if (schema) {
-        onStageUpdate?.('Input Validation', 'loading'); // Re-use invalidation stage or a new one? 
+        // onStageUpdate?.('Input Validation', 'loading'); // REMOVED: Keep it green since it was already validated 
         // Actually Input Validation stage is technically done, but we need semantic validity for generation
         await useSchemaStore.getState().validateSchema(schema);
         // We don't necessarily need to show a toast here as convert success is shown
