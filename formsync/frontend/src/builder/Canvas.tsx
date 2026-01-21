@@ -15,12 +15,20 @@ import './plugins/CalculatedFieldPreview';
 
 // ─── Generic Field Mock ───────────────────────────────────────────────────────
 
-const GenericFieldMock: React.FC<{ field: FieldModel }> = ({ field }) => {
+type StyleOverrides = Record<string, string>;
+
+const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides }> = ({ field, overrides }) => {
     const base: React.CSSProperties = {
-        width: '100%', border: '1px solid var(--color-border)',
-        borderRadius: 'var(--border-radius)', background: 'var(--color-input-bg)',
-        padding: '0 0.75rem', color: 'var(--color-muted)',
-        fontSize: 'var(--font-size-base)', pointerEvents: 'none',
+        width: '100%',
+        border: `1px solid ${overrides?.borderColor ?? 'var(--color-border)'}`,
+        borderRadius: 'var(--border-radius)',
+        background: overrides?.backgroundColor ?? 'var(--color-input-bg)',
+        padding: '0 0.75rem',
+        color: overrides?.inputTextColor ?? 'var(--color-muted)',
+        fontSize: 'var(--font-size-base)',
+        pointerEvents: 'none',
+        outline: 'none',
+        boxSizing: 'border-box',
     };
 
     if (field.type === 'checkbox') {
@@ -58,6 +66,7 @@ const GenericFieldMock: React.FC<{ field: FieldModel }> = ({ field }) => {
     );
 };
 
+
 // ─── Field Renderer ───────────────────────────────────────────────────────────
 
 interface FieldRendererProps {
@@ -69,14 +78,21 @@ interface FieldRendererProps {
 }
 
 const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, theme, previewValues }) => {
-    const overrides = field.ui?.styleOverrides;
+    const overrides = field.ui?.styleOverrides as StyleOverrides | undefined;
     const colSpan = field.ui?.['x-ui']?.colSpan ?? 12;
     const hasConditions = (field.ui?.['x-conditions']?.rules?.length ?? 0) > 0;
     const calcValue = field.type === 'calculated' && field['x-calc']
         ? evaluateCalcExpression(field['x-calc'], previewValues)
         : undefined;
 
+    // Scope the focus color as a CSS variable on the field wrapper so the
+    // browser's :focus ring picks it up via outline: var(--field-focus-color)
+    const wrapVars = overrides?.focusColor
+        ? { '--field-focus-color': overrides.focusColor } as React.CSSProperties
+        : {};
+
     const wrapStyle: React.CSSProperties = {
+        ...wrapVars,
         gridColumn: `span ${colSpan}`,
         padding: '0.65rem',
         border: isSelected ? '2px solid var(--color-primary)' : '2px solid transparent',
@@ -155,7 +171,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
             ) : Plugin ? (
                 <Plugin field={field} isSelected={isSelected} theme={theme} />
             ) : (
-                <GenericFieldMock field={field} />
+                <GenericFieldMock field={field} overrides={overrides} />
             )}
 
             {/* Help text */}
