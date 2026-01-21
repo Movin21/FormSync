@@ -40,9 +40,7 @@ export const BuilderLayout: React.FC = () => {
       );
     } catch (error) {
       console.error("Export failed:", error);
-      alert(
-        `Export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
       setStages((prev) =>
         prev.map((s) =>
           s.name === "Frontend Generation" ? { ...s, status: "error" } : s,
@@ -72,16 +70,11 @@ export const BuilderLayout: React.FC = () => {
         }
         setStages((prev) =>
           prev.map((s, idx) =>
-            idx === stageIndex
-              ? { ...s, status: "complete", progress: 100 }
-              : s,
+            idx === stageIndex ? { ...s, status: "complete", progress: 100 } : s,
           ),
         );
       }
-      // Navigate within the same app (same port)
-      const dest = state.schemaId
-        ? `/generated?schemaId=${state.schemaId}`
-        : "/generated";
+      const dest = state.schemaId ? `/generated?schemaId=${state.schemaId}` : "/generated";
       window.location.href = dest;
     } catch (error) {
       console.error("Generation failed:", error);
@@ -95,142 +88,75 @@ export const BuilderLayout: React.FC = () => {
   };
 
   return (
-    <div className="builder-layout">
-      <LeftPanel />
+    <div className="builder-root">
+      {/* ── Top bar: spans full width above the 3-col body ── */}
+      <header className="builder-topbar">
+        {/* Left brand */}
+        <div className="topbar-brand">
+          <span className="topbar-logo">FS</span>
+          <span className="topbar-title">Form Builder</span>
+        </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ flexShrink: 0 }}>
+        {/* Center: pipeline flow */}
+        <div className="topbar-flow">
           <FlowDiagram stages={stages} />
         </div>
-        <div style={{ flexShrink: 0 }}>
-          <WizardControls />
-        </div>
-        {/* Canvas must fill remaining space and scroll independently */}
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Canvas />
-        </div>
-      </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-          /* no flex:1 — width is set by the grid column (300px) */
-        }}
-      >
-        {/* Persistent Export Toolbar */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            padding: "0.75rem",
-            backgroundColor: "#f8f9fa",
-            borderBottom: "1px solid #e5e7eb",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            minHeight: "60px",
-          }}
-        >
-          {/* Undo button */}
+        {/* Right: actions */}
+        <div className="topbar-actions">
           <button
-            onClick={() => dispatch({ type: 'UNDO' })}
+            onClick={() => dispatch({ type: "UNDO" })}
             disabled={!canUndo}
-            title="Undo last change"
-            style={{
-              display: "flex", alignItems: "center", gap: "0.3rem",
-              padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb",
-              borderRadius: "0.5rem", background: canUndo ? "#f9fafb" : "#f3f4f6",
-              color: canUndo ? "#374151" : "#d1d5db", cursor: canUndo ? "pointer" : "not-allowed",
-              fontSize: "0.8rem", fontWeight: 500,
-            }}
+            className={`btn-ghost ${!canUndo ? "btn-disabled" : ""}`}
+            title="Undo"
           >
-            <Undo2 size={14} /> Undo
+            <Undo2 size={15} />
+            <span>Undo</span>
           </button>
+
           {!isFrontendComplete ? (
             <button
               onClick={handleExport}
               disabled={isExporting}
-              style={{
-                background: "linear-gradient(to right, #4f46e5, #9333ea)",
-                color: "white",
-                padding: "0.75rem 2rem",
-                borderRadius: "0.75rem",
-                border: "none",
-                fontWeight: 600,
-                fontSize: "1rem",
-                cursor: isExporting ? "not-allowed" : "pointer",
-                opacity: isExporting ? 0.7 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease-in-out",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                if (!isExporting) {
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isExporting) {
-                  e.currentTarget.style.transform = "scale(1)";
-                }
-              }}
+              className="btn-primary"
             >
-              <Sparkles size={20} />
-              {isExporting ? "Exporting..." : "Export React App"}
+              <Sparkles size={16} />
+              {isExporting ? "Exporting…" : "Export React App"}
             </button>
           ) : (
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
-              style={{
-                background: "linear-gradient(to right, #4f46e5, #9333ea)",
-                color: "white",
-                padding: "0.75rem 2rem",
-                borderRadius: "0.75rem",
-                border: "none",
-                fontWeight: 600,
-                fontSize: "1rem",
-                cursor: isGenerating ? "not-allowed" : "pointer",
-                opacity: isGenerating ? 0.7 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                transition: "all 0.2s ease-in-out",
-                whiteSpace: "nowrap",
-              }}
+              className="btn-primary"
             >
-              <Sparkles size={20} />
-              {isGenerating ? "Generating..." : "Generate Code"}
+              <Sparkles size={16} />
+              {isGenerating ? "Generating…" : "Generate Code"}
             </button>
           )}
         </div>
+      </header>
 
-        <RightPanel />
+      {/* ── Body: 3-col layout below the topbar ── */}
+      <div className="builder-body">
+        {/* Left panel */}
+        <aside className="builder-sidebar builder-sidebar--left">
+          <LeftPanel />
+        </aside>
+
+        {/* Center: wizard bar + canvas */}
+        <main className="builder-canvas-col">
+          <div className="wizard-bar">
+            <WizardControls />
+          </div>
+          <div className="canvas-wrapper">
+            <Canvas />
+          </div>
+        </main>
+
+        {/* Right panel */}
+        <aside className="builder-sidebar builder-sidebar--right">
+          <RightPanel />
+        </aside>
       </div>
     </div>
   );
