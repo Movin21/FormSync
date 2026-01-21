@@ -25,9 +25,11 @@ const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides
     const borderColor = overrides?.borderColor ?? 'var(--color-border)';
     const bgColor = overrides?.backgroundColor ?? 'var(--color-input-bg)';
     // Focus ring: since inputs are disabled, :focus never fires in the builder.
-    // Show the focus color as a permanent box-shadow so designers can preview it.
+    // Use the "white gap + outer ring" pattern so the focus ring is visually
+    // distinct from the border (border = edge of the field; ring = outside it).
+    // The 2px white shadow creates a gap between the border and the ring.
     const focusRing = overrides?.focusColor
-        ? `0 0 0 2px ${overrides.focusColor}40, 0 0 0 1px ${overrides.focusColor}`
+        ? `0 0 0 2px white, 0 0 0 4px ${overrides.focusColor}`
         : undefined;
 
     const base: React.CSSProperties = {
