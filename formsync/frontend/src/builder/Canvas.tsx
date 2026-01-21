@@ -18,18 +18,37 @@ import './plugins/CalculatedFieldPreview';
 type StyleOverrides = Record<string, string>;
 
 const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides }> = ({ field, overrides }) => {
+    // Unique selector used to scope placeholder + focus-ring styles per field
+    const scopeId = `fm-${field.id}`;
+
+    const inputTextColor = overrides?.inputTextColor ?? 'var(--color-muted)';
+    const borderColor = overrides?.borderColor ?? 'var(--color-border)';
+    const bgColor = overrides?.backgroundColor ?? 'var(--color-input-bg)';
+    // Focus ring: since inputs are disabled, :focus never fires in the builder.
+    // Show the focus color as a permanent box-shadow so designers can preview it.
+    const focusRing = overrides?.focusColor
+        ? `0 0 0 2px ${overrides.focusColor}40, 0 0 0 1px ${overrides.focusColor}`
+        : undefined;
+
     const base: React.CSSProperties = {
         width: '100%',
-        border: `1px solid ${overrides?.borderColor ?? 'var(--color-border)'}`,
+        border: `1px solid ${borderColor}`,
         borderRadius: 'var(--border-radius)',
-        background: overrides?.backgroundColor ?? 'var(--color-input-bg)',
+        background: bgColor,
         padding: '0 0.75rem',
-        color: overrides?.inputTextColor ?? 'var(--color-muted)',
+        color: inputTextColor,
         fontSize: 'var(--font-size-base)',
         pointerEvents: 'none',
         outline: 'none',
         boxSizing: 'border-box',
+        boxShadow: focusRing,
     };
+
+    // Inject a scoped <style> so ::placeholder picks up the text color.
+    // Inline `color:` on a disabled input does NOT affect placeholder text.
+    const placeholderStyle = overrides?.inputTextColor
+        ? `#${scopeId} input::placeholder, #${scopeId} textarea::placeholder, #${scopeId} select { color: ${overrides.inputTextColor} !important; opacity: 1; }`
+        : null;
 
     if (field.type === 'checkbox') {
         return (
@@ -39,30 +58,41 @@ const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides
             </div>
         );
     }
+
+    const wrapId = scopeId;
     if (field.type === 'select') {
         return (
-            <select disabled style={{ ...base, height: '38px' }}>
-                <option>{field.ui?.placeholder ?? `Select ${field.label}…`}</option>
-                {field.constraints?.enum?.map((opt) => <option key={opt}>{opt}</option>)}
-            </select>
+            <div id={wrapId}>
+                {placeholderStyle && <style>{placeholderStyle}</style>}
+                <select disabled style={{ ...base, height: '38px', width: '100%' }}>
+                    <option>{field.ui?.placeholder ?? `Select ${field.label}…`}</option>
+                    {field.constraints?.enum?.map((opt) => <option key={opt}>{opt}</option>)}
+                </select>
+            </div>
         );
     }
     if (field.type === 'textarea') {
         return (
-            <textarea
-                readOnly disabled value=""
-                placeholder={field.ui?.placeholder ?? 'Enter text…'}
-                style={{ ...base, minHeight: '80px', padding: '0.5rem 0.75rem', resize: 'vertical' }}
-            />
+            <div id={wrapId}>
+                {placeholderStyle && <style>{placeholderStyle}</style>}
+                <textarea
+                    readOnly disabled value=""
+                    placeholder={field.ui?.placeholder ?? 'Enter text…'}
+                    style={{ ...base, minHeight: '80px', padding: '0.5rem 0.75rem', resize: 'vertical', width: '100%' }}
+                />
+            </div>
         );
     }
     return (
-        <input
-            type={field.type === 'password' ? 'password' : field.type === 'date' ? 'date' : 'text'}
-            readOnly disabled
-            placeholder={field.ui?.placeholder ?? `Enter ${field.label.toLowerCase()}…`}
-            style={{ ...base, height: '38px' }}
-        />
+        <div id={wrapId}>
+            {placeholderStyle && <style>{placeholderStyle}</style>}
+            <input
+                type={field.type === 'password' ? 'password' : field.type === 'date' ? 'date' : 'text'}
+                readOnly disabled
+                placeholder={field.ui?.placeholder ?? `Enter ${field.label.toLowerCase()}…`}
+                style={{ ...base, height: '38px', width: '100%' }}
+            />
+        </div>
     );
 };
 
@@ -72,12 +102,16 @@ const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides
 interface FieldRendererProps {
     field: FieldModel;
     isSelected: boolean;
-    onSelect: () => void;
+    onSelect: (e?: React.MouseEvent) => void;
+    /** Id of the currently selected field (needed for nested child highlighting) */
+    selectedFieldId: string | null;
+    /** Dispatch a child field selection request up to the Canvas */
+    onSelectChild: (id: string) => void;
     theme: Record<string, string | number>;
     previewValues: Record<string, unknown>;
 }
 
-const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, theme, previewValues }) => {
+const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, selectedFieldId, onSelectChild, theme, previewValues }) => {
     const overrides = field.ui?.styleOverrides as StyleOverrides | undefined;
     const colSpan = field.ui?.['x-ui']?.colSpan ?? 12;
     const hasConditions = (field.ui?.['x-conditions']?.rules?.length ?? 0) > 0;
@@ -102,7 +136,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
         transition: 'border-color 0.12s',
     };
 
-    // Group type
+    // Group type — children are now selectable
     if (field.type === 'group') {
         return (
             <fieldset
@@ -118,7 +152,16 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
                 </legend>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '0.65rem' }}>
                     {field.children?.map((child) => (
-                        <FieldRenderer key={child.id} field={child} isSelected={false} onSelect={() => { }} theme={theme} previewValues={previewValues} />
+                        <FieldRenderer
+                            key={child.id}
+                            field={child}
+                            isSelected={selectedFieldId === child.id}
+                            onSelect={(e?: React.MouseEvent) => { e?.stopPropagation(); onSelectChild(child.id); }}
+                            theme={theme}
+                            previewValues={previewValues}
+                            selectedFieldId={selectedFieldId}
+                            onSelectChild={onSelectChild}
+                        />
                     ))}
                 </div>
             </fieldset>
@@ -371,6 +414,8 @@ export const Canvas: React.FC = () => {
                                 field={field}
                                 isSelected={selectedFieldId === field.id}
                                 onSelect={() => dispatch({ type: 'SELECT_FIELD', payload: field.id })}
+                                selectedFieldId={selectedFieldId}
+                                onSelectChild={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
                                 theme={themeVars as Record<string, string | number>}
                                 previewValues={previewValues}
                             />

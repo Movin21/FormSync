@@ -70,7 +70,49 @@ const initialState: BuilderState = {
     historyIndex: -1,
 };
 
-// ─── History Helpers ──────────────────────────────────────────────────────────
+// ─── Tree Helpers ─────────────────────────────────────────────────────────────
+
+/** Recursively find a field by id, including inside group children */
+export function findFieldInTree(fields: FieldModel[], id: string): FieldModel | undefined {
+    for (const field of fields) {
+        if (field.id === id) return field;
+        if (field.children) {
+            const found = findFieldInTree(field.children, id);
+            if (found) return found;
+        }
+    }
+    return undefined;
+}
+
+/** Recursively update a field by id, merging ui sub-object. Works on nested children. */
+function updateFieldInTree(
+    fields: FieldModel[],
+    fieldId: string,
+    updates: Partial<FieldModel>,
+): FieldModel[] {
+    return fields.map((field) => {
+        if (field.id === fieldId) {
+            const mergedUi = updates.ui !== undefined
+                ? { ...field.ui, ...updates.ui }
+                : field.ui;
+            return { ...field, ...updates, ui: mergedUi };
+        }
+        if (field.children && field.children.length > 0) {
+            return { ...field, children: updateFieldInTree(field.children, fieldId, updates) };
+        }
+        return field;
+    });
+}
+
+/** Recursively remove a field by id, including from children arrays. */
+function removeFieldFromTree(fields: FieldModel[], id: string): FieldModel[] {
+    return fields
+        .filter((f) => f.id !== id)
+        .map((f) =>
+            f.children ? { ...f, children: removeFieldFromTree(f.children, id) } : f,
+        );
+}
+
 
 const MAX_HISTORY = 50;
 
@@ -99,15 +141,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
             const { fieldId, updates } = action.payload;
             const nextForm: FormModel = {
                 ...state.form,
-                fields: state.form.fields.map((field) => {
-                    if (field.id !== fieldId) return field;
-                    // Deep-merge the `ui` sub-object so partial ui updates
-                    // (e.g. just changing placeholder) don't wipe x-ui, x-conditions, etc.
-                    const mergedUi = updates.ui !== undefined
-                        ? { ...field.ui, ...updates.ui }
-                        : field.ui;
-                    return { ...field, ...updates, ui: mergedUi };
-                }),
+                fields: updateFieldInTree(state.form.fields, fieldId, updates),
             };
             return pushHistory(state, nextForm);
         }
@@ -142,7 +176,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
             const id = action.payload;
             const nextForm: FormModel = {
                 ...state.form,
-                fields: state.form.fields.filter((f) => f.id !== id),
+                fields: removeFieldFromTree(state.form.fields, id),
                 layout: {
                     ...state.form.layout,
                     order: state.form.layout.order.filter((o) => o !== id),

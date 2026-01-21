@@ -1,5 +1,6 @@
 import React from 'react';
 import { useBuilder } from '../context/BuilderContext';
+import { findFieldInTree } from '../context/BuilderContext';
 import { FieldModel, ThemeConfig, ConditionRule, ConditionOperator, FieldConditions } from '../types';
 
 const THEME_PRESETS = {
@@ -124,7 +125,10 @@ const ColorRow: React.FC<{ label: string; value: string; onChange: (v: string) =
 
 export const RightPanel: React.FC = () => {
     const { state, dispatch, isWizardMode } = useBuilder();
-    const selectedField = state.form.fields.find((f) => f.id === state.selectedFieldId);
+    // Search recursively so group child fields are also found
+    const selectedField = state.selectedFieldId
+        ? findFieldInTree(state.form.fields, state.selectedFieldId)
+        : undefined;
 
     const handleUpdate = (updates: Partial<FieldModel>) => {
         if (!selectedField) return;
