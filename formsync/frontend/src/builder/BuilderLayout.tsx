@@ -104,16 +104,21 @@ export const BuilderLayout: React.FC = () => {
           flexDirection: "column",
           height: "100%",
           minWidth: 0,
+          minHeight: 0,
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "0 0" }}>
+        <div style={{ flexShrink: 0 }}>
           <FlowDiagram stages={stages} />
         </div>
-        <WizardControls />
+        <div style={{ flexShrink: 0 }}>
+          <WizardControls />
+        </div>
+        {/* Canvas must fill remaining space and scroll independently */}
         <div
           style={{
             flex: 1,
+            minHeight: 0,
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -128,7 +133,9 @@ export const BuilderLayout: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           minWidth: 0,
-          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+          /* no flex:1 — width is set by the grid column (300px) */
         }}
       >
         {/* Persistent Export Toolbar */}
