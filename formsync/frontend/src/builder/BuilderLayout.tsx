@@ -5,7 +5,7 @@ import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
-import { FlowDiagram, GenerationStage } from "./FlowDiagram";
+import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
 import { Button } from "../components/ui/button";
@@ -15,39 +15,35 @@ export const BuilderLayout: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [stages, setStages] = useState<GenerationStage[]>([
-    { name: "Enter Schema", status: "complete", progress: 100 },
-    { name: "Input Validation", status: "complete", progress: 100 },
-    { name: "Schema Conversion", status: "complete", progress: 100 },
-    { name: "AI Enhancement", status: "complete", progress: 100 },
-    { name: "Frontend Generation", status: "pending", progress: 0 },
-    { name: "Backend Generation", status: "pending", progress: 0 },
-    { name: "DTO Generation", status: "pending", progress: 0 },
-    { name: "Test Generation", status: "pending", progress: 0 },
+  type Stage = { name: string; status: 'pending' | 'loading' | 'complete' | 'error' };
+
+  const [stages, setStages] = useState<Stage[]>([
+    { name: "Enter Schema", status: "complete" },
+    { name: "Input Validation", status: "complete" },
+    { name: "Schema Conversion", status: "complete" },
+    { name: "AI Enhancement", status: "complete" },
+    { name: "Frontend Generation", status: "pending" },
+    { name: "Backend Generation", status: "pending" },
+    { name: "DTO Generation", status: "pending" },
+    { name: "Test Generation", status: "pending" },
   ]);
 
   const isFrontendComplete =
     stages.find((s) => s.name === "Frontend Generation")?.status === "complete";
 
+  const markStage = (name: string, status: Stage['status']) =>
+    setStages((prev) => prev.map((s) => s.name === name ? { ...s, status } : s));
+  void markStage; // used in export/generate handlers below
+
   const handleExport = async () => {
     try {
       setIsExporting(true);
       await exportReactApp(state.form);
-      setStages((prev) =>
-        prev.map((s) =>
-          s.name === "Frontend Generation"
-            ? { ...s, status: "complete", progress: 100 }
-            : s,
-        ),
-      );
+      markStage("Frontend Generation", "complete");
     } catch (error) {
       console.error("Export failed:", error);
       alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
-      setStages((prev) =>
-        prev.map((s) =>
-          s.name === "Frontend Generation" ? { ...s, status: "error" } : s,
-        ),
-      );
+      markStage("Frontend Generation", "error");
     } finally {
       setIsExporting(false);
     }
@@ -56,24 +52,13 @@ export const BuilderLayout: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      for (let i = 5; i <= 6; i++) {
-        setStages((prev) =>
-          prev.map((s, idx) =>
-            idx === i ? { ...s, status: "loading", progress: 0 } : s,
-          ),
-        );
-        for (let p = 0; p <= 100; p += 25) {
-          await new Promise((r) => setTimeout(r, 200));
-          setStages((prev) =>
-            prev.map((s, idx) => (idx === i ? { ...s, progress: p } : s)),
-          );
-        }
-        setStages((prev) =>
-          prev.map((s, idx) =>
-            idx === i ? { ...s, status: "complete", progress: 100 } : s,
-          ),
-        );
+      const genStageNames = ["Backend Generation", "DTO Generation"];
+      for (const name of genStageNames) {
+        markStage(name, "loading");
+        await new Promise((r) => setTimeout(r, 600));
+        markStage(name, "complete");
       }
+      markStage("Frontend Generation", "complete");
       const dest = state.schemaId
         ? `/generated?schemaId=${state.schemaId}`
         : "/generated";
