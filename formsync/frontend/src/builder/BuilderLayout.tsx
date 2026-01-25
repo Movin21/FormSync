@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { LeftPanel } from "./LeftPanel";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
+import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
 import { FlowDiagram, GenerationStage } from "./FlowDiagram";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Undo2 } from "lucide-react";
 
 export const BuilderLayout: React.FC = () => {
-  const { state } = useBuilder();
+  const { state, dispatch, canUndo } = useBuilder();
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -106,9 +107,10 @@ export const BuilderLayout: React.FC = () => {
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "0 1rem" }}>
+        <div style={{ padding: "0 0" }}>
           <FlowDiagram stages={stages} />
         </div>
+        <WizardControls />
         <div
           style={{
             flex: 1,
@@ -143,6 +145,21 @@ export const BuilderLayout: React.FC = () => {
             minHeight: "60px",
           }}
         >
+          {/* Undo button */}
+          <button
+            onClick={() => dispatch({ type: 'UNDO' })}
+            disabled={!canUndo}
+            title="Undo last change"
+            style={{
+              display: "flex", alignItems: "center", gap: "0.3rem",
+              padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb",
+              borderRadius: "0.5rem", background: canUndo ? "#f9fafb" : "#f3f4f6",
+              color: canUndo ? "#374151" : "#d1d5db", cursor: canUndo ? "pointer" : "not-allowed",
+              fontSize: "0.8rem", fontWeight: 500,
+            }}
+          >
+            <Undo2 size={14} /> Undo
+          </button>
           {!isFrontendComplete ? (
             <button
               onClick={handleExport}
