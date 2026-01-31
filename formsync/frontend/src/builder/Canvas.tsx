@@ -339,7 +339,7 @@ export const Canvas: React.FC = () => {
         <div className="canvas-area" onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}>
             <div className="form-preview" style={themeVars} onClick={(e) => e.stopPropagation()}>
 
-                {/* ── Live Preview Mode Banner + Toggle ──────────────────────── */}
+                {/* ── Mode banner ─────────────────────────────────────────────── */}
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     marginBottom: showPreview ? '0.75rem' : '1rem',
@@ -347,33 +347,35 @@ export const Canvas: React.FC = () => {
                     {showPreview ? (
                         <div style={{
                             flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            background: '#eff6ff', border: '1px solid #bfdbfe',
-                            borderRadius: 8, padding: '0.45rem 0.75rem',
+                            background: '#f0f7ff', border: '1px solid #c3dafe',
+                            borderRadius: 5, padding: '0.35rem 0.65rem',
                         }}>
-                            <span style={{ fontSize: '0.8rem' }}>🧪</span>
-                            <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 600 }}>Test Mode active</span>
-                            <span style={{ fontSize: '0.72rem', color: '#3b82f6' }}>— type into fields to test conditions. Hidden fields may disappear.</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            <span style={{ fontSize: '0.7rem', color: '#1d4ed8', fontWeight: 600 }}>Test Mode</span>
+                            <span style={{ fontSize: '0.68rem', color: '#3b82f6' }}>Type into fields to test conditions</span>
                             <button
                                 onClick={() => { setShowPreview(false); dispatch({ type: 'CLEAR_PREVIEW_VALUES' }); }}
-                                style={{ marginLeft: 'auto', fontSize: '0.7rem', padding: '2px 10px', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 6, color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
+                                style={{ marginLeft: 'auto', fontSize: '0.67rem', padding: '2px 9px', background: 'transparent', border: '1px solid #93c5fd', borderRadius: 4, color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
                             >
-                                Exit Test Mode
+                                Exit
                             </button>
                         </div>
                     ) : (
                         <>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Builder view — fields always visible</span>
+                            <span style={{ fontSize: '0.67rem', color: 'var(--color-muted, #888)', letterSpacing: '0.01em' }}>Builder view</span>
                             <button
                                 onClick={() => setShowPreview(true)}
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                    fontSize: '0.72rem', padding: '4px 12px',
-                                    border: '1px solid #6366f1', borderRadius: 12,
-                                    cursor: 'pointer', background: '#f5f3ff',
-                                    color: '#4338ca', fontWeight: 600,
+                                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                                    fontSize: '0.67rem', padding: '3px 9px',
+                                    border: '1px solid var(--color-border, #e5e7eb)',
+                                    borderRadius: 4, cursor: 'pointer',
+                                    background: 'transparent',
+                                    color: 'var(--color-muted, #666)', fontWeight: 500,
                                 }}
                             >
-                                <span>🧪</span> Test Conditions
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                                Test Conditions
                             </button>
                         </>
                     )}
