@@ -337,7 +337,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                                     }}
                                 />
                                 <button
-                                    style={{ padding: '0 0.75rem', background: '#e5f3ff', border: '1px solid #b3dbff', borderRadius: 5, cursor: 'pointer', color: '#18a0fb', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
+                                    style={{ padding: '0 0.75rem', background: '#ede9fe', border: '1px solid #c4b5fd', borderRadius: 5, cursor: 'pointer', color: '#6366f1', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
                                     onClick={(e) => {
                                         const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
                                         const val = (input?.value ?? '').trim();

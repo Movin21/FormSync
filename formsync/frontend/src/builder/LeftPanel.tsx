@@ -61,24 +61,24 @@ const PaletteButton: React.FC<{
             alignItems: 'center',
             gap: '0.35rem',
             padding: '0.4rem 0.5rem',
-            border: '1px solid #e5e5e5',
-            borderRadius: 4,
+            border: '1px solid #e2e8f0',
+            borderRadius: 5,
             background: '#ffffff',
             cursor: 'pointer',
             fontSize: '0.72rem',
             fontWeight: 500,
-            color: 'rgba(0,0,0,0.8)',
+            color: '#475569',
             transition: 'border-color 0.1s, background 0.1s, color 0.1s',
             textAlign: 'left',
             fontFamily: 'inherit',
         }}
         onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#18a0fb';
-            e.currentTarget.style.background = 'rgba(24,160,251,0.08)';
-            e.currentTarget.style.color = '#18a0fb';
+            e.currentTarget.style.borderColor = '#6366f1';
+            e.currentTarget.style.background = 'rgba(99,102,241,0.06)';
+            e.currentTarget.style.color = '#6366f1';
         }}
         onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#e5e5e5';
+            e.currentTarget.style.borderColor = '#e2e8f0';
             e.currentTarget.style.background = '#ffffff';
             e.currentTarget.style.color = 'rgba(0,0,0,0.8)';
         }}
@@ -108,13 +108,13 @@ const FieldTreeItem: React.FC<{
                 borderRadius: 4,
                 cursor: 'pointer',
                 fontSize: '0.72rem',
-                background: isSelected ? 'rgba(24,160,251,0.08)' : 'transparent',
-                border: `1px solid ${isSelected ? 'rgba(24,160,251,0.3)' : 'transparent'}`,
+                background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
+                border: `1px solid ${isSelected ? 'rgba(99,102,241,0.3)' : 'transparent'}`,
                 marginBottom: 1,
             }}
             onClick={onSelect}
         >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#18a0fb' : 'rgba(0,0,0,0.8)' }}>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
                 {field.label}
             </span>
             <span style={{ fontSize: '0.6rem', color: 'rgba(0,0,0,0.4)', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
@@ -161,9 +161,9 @@ export const LeftPanel: React.FC = () => {
 
     const tabBtn = (active: boolean): React.CSSProperties => ({
         flex: 1, padding: '0.35rem', border: 'none',
-        borderBottom: `2px solid ${active ? '#18a0fb' : 'transparent'}`,
+        borderBottom: `2px solid ${active ? '#6366f1' : 'transparent'}`,
         background: 'none', cursor: 'pointer', fontWeight: active ? 600 : 400,
-        color: active ? '#18a0fb' : 'rgba(0,0,0,0.6)', fontSize: '0.72rem', fontFamily: 'inherit',
+        color: active ? '#6366f1' : '#64748b', fontSize: '0.72rem', fontFamily: 'inherit',
     });
 
     return (
@@ -172,7 +172,7 @@ export const LeftPanel: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', height: 40, paddingLeft: 0 }}>
                     <span style={{ color: '#000000' }}>Fields</span>
                 </div>
-                <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0' }}>
                     <button style={tabBtn(tab === 'palette')} onClick={() => setTab('palette')}>Palette</button>
                     <button style={tabBtn(tab === 'tree')} onClick={() => setTab('tree')}>
                         Layers ({displayFields.length})
@@ -196,7 +196,7 @@ export const LeftPanel: React.FC = () => {
                             </div>
                         ))}
                         {isWizardMode && (
-                            <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.5rem', background: 'rgba(24,160,251,0.05)', borderRadius: 4, border: '1px solid rgba(24,160,251,0.2)', fontSize: '0.68rem', color: '#18a0fb' }}>
+                            <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.5rem', background: 'rgba(99,102,241,0.06)', borderRadius: 5, border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.68rem', color: '#6366f1' }}>
                                 Adding to Step {state.activeStep + 1}
                             </div>
                         )}
