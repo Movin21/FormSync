@@ -59,30 +59,31 @@ const PaletteButton: React.FC<{
         style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.45rem 0.6rem',
-            border: '1px solid #e5e7eb',
-            borderRadius: 5,
-            background: '#fff',
+            gap: '0.35rem',
+            padding: '0.4rem 0.5rem',
+            border: '1px solid #333',
+            borderRadius: 4,
+            background: '#252525',
             cursor: 'pointer',
-            fontSize: '0.78rem',
+            fontSize: '0.72rem',
             fontWeight: 500,
-            color: '#374151',
-            transition: 'border-color 0.1s, background 0.1s',
+            color: '#aaa',
+            transition: 'border-color 0.1s, background 0.1s, color 0.1s',
             textAlign: 'left',
+            fontFamily: 'inherit',
         }}
         onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#6366f1';
-            e.currentTarget.style.background = '#f5f3ff';
-            e.currentTarget.style.color = '#4338ca';
+            e.currentTarget.style.borderColor = '#4f8ef7';
+            e.currentTarget.style.background = 'rgba(79,142,247,0.08)';
+            e.currentTarget.style.color = '#4f8ef7';
         }}
         onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#e5e7eb';
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.color = '#374151';
+            e.currentTarget.style.borderColor = '#333';
+            e.currentTarget.style.background = '#252525';
+            e.currentTarget.style.color = '#aaa';
         }}
     >
-        <Icon size={13} strokeWidth={2} />
+        <Icon size={12} strokeWidth={2} />
         <span>{label}</span>
     </button>
 );
@@ -101,32 +102,32 @@ const FieldTreeItem: React.FC<{
             style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.5rem',
+                gap: '0.35rem',
+                padding: '0.28rem 0.5rem',
                 paddingLeft: `${0.5 + indent * 1}rem`,
                 borderRadius: 4,
                 cursor: 'pointer',
-                fontSize: '0.8rem',
-                background: isSelected ? '#f5f3ff' : 'transparent',
-                border: `1px solid ${isSelected ? '#c4b5fd' : 'transparent'}`,
-                marginBottom: 2,
+                fontSize: '0.72rem',
+                background: isSelected ? 'rgba(79,142,247,0.12)' : 'transparent',
+                border: `1px solid ${isSelected ? 'rgba(79,142,247,0.35)' : 'transparent'}`,
+                marginBottom: 1,
             }}
             onClick={onSelect}
         >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: '#1e293b' }}>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#4f8ef7' : '#ccc' }}>
                 {field.label}
             </span>
-            <span style={{ fontSize: '0.65rem', color: '#94a3b8', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
+            <span style={{ fontSize: '0.6rem', color: '#555', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
             <button
                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
                 title="Remove"
                 style={{
                     padding: '0 4px', lineHeight: '16px', fontSize: '0.85rem',
-                    border: 'none', background: 'transparent', color: '#94a3b8',
+                    border: 'none', background: 'transparent', color: '#444',
                     cursor: 'pointer', flexShrink: 0,
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#444'; }}
             >
                 ×
             </button>
@@ -159,21 +160,22 @@ export const LeftPanel: React.FC = () => {
     };
 
     const tabBtn = (active: boolean): React.CSSProperties => ({
-        flex: 1, padding: '0.4rem', border: 'none', borderBottom: `2px solid ${active ? '#6366f1' : 'transparent'}`,
+        flex: 1, padding: '0.35rem', border: 'none',
+        borderBottom: `2px solid ${active ? '#4f8ef7' : 'transparent'}`,
         background: 'none', cursor: 'pointer', fontWeight: active ? 600 : 400,
-        color: active ? '#4338ca' : '#64748b', fontSize: '0.8rem',
+        color: active ? '#4f8ef7' : '#555', fontSize: '0.72rem', fontFamily: 'inherit',
     });
 
     return (
         <div className="panel">
-            <div className="panel-header" style={{ paddingBottom: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>Fields</span>
+            <div className="panel-header" style={{ paddingBottom: 0, height: 'auto', flexDirection: 'column', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: 40, paddingLeft: 0 }}>
+                    <span>Fields</span>
                 </div>
-                <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid #2c2c2c' }}>
                     <button style={tabBtn(tab === 'palette')} onClick={() => setTab('palette')}>Palette</button>
                     <button style={tabBtn(tab === 'tree')} onClick={() => setTab('tree')}>
-                        Added ({displayFields.length})
+                        Layers ({displayFields.length})
                     </button>
                 </div>
             </div>
@@ -183,10 +185,10 @@ export const LeftPanel: React.FC = () => {
                     <div>
                         {PALETTE_GROUPS.map((group) => (
                             <div key={group.title} style={{ marginBottom: '1rem' }}>
-                                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>
+                                <div style={{ fontSize: '0.62rem', fontWeight: 600, color: '#555', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.35rem' }}>
                                     {group.title}
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.2rem' }}>
                                     {group.fields.map(({ type, label, Icon }) => (
                                         <PaletteButton key={type} label={label} Icon={Icon} onClick={() => handleAdd(type)} />
                                     ))}
@@ -194,7 +196,7 @@ export const LeftPanel: React.FC = () => {
                             </div>
                         ))}
                         {isWizardMode && (
-                            <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.6rem', background: '#f5f3ff', borderRadius: 5, border: '1px solid #ddd6fe', fontSize: '0.75rem', color: '#5b21b6' }}>
+                            <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.5rem', background: 'rgba(79,142,247,0.08)', borderRadius: 4, border: '1px solid rgba(79,142,247,0.2)', fontSize: '0.68rem', color: '#4f8ef7' }}>
                                 Adding to Step {state.activeStep + 1}
                             </div>
                         )}
@@ -204,7 +206,7 @@ export const LeftPanel: React.FC = () => {
                 {tab === 'tree' && (
                     <div>
                         {displayFields.length === 0 ? (
-                            <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.82rem', color: '#94a3b8' }}>
+                            <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: '#444' }}>
                                 No fields yet.<br />Use the Palette tab.
                             </div>
                         ) : (
