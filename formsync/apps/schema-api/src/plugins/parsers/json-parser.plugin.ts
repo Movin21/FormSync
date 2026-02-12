@@ -66,15 +66,34 @@ export class JsonParserPlugin implements FormatParserPlugin {
   }
 
   private normalizeToJsonSchema(schema: any): any {
-    // Deep clone the schema to avoid any reference issues
-    const cloned = JSON.parse(JSON.stringify(schema));
-    
-    // Ensure it conforms to JSON Schema Draft-7
-    if (!cloned.$schema) {
-      cloned.$schema = 'http://json-schema.org/draft-07/schema#';
+    // Build properly ordered schema
+    const normalized: any = {
+      $schema: schema.$schema || 'http://json-schema.org/draft-07/schema#',
+    };
+
+    // Add title and description if present
+    if (schema.title) {
+      normalized.title = schema.title;
+      // Ensure description matches title
+      normalized.description = schema.description || `Schema for ${schema.title.replace(' Schema', '')}`;
+    }
+
+    // Add remaining properties in order
+    if (schema.type) normalized.type = schema.type;
+    if (schema.properties) normalized.properties = schema.properties;
+    if (schema.required) normalized.required = schema.required;
+    if (schema.items) normalized.items = schema.items;
+    if (schema.additionalProperties !== undefined) normalized.additionalProperties = schema.additionalProperties;
+
+    // Add any other properties not explicitly handled
+    for (const key in schema) {
+      if (!['$schema', 'title', 'description', 'type', 'properties', 'required', 'items', 'additionalProperties'].includes(key)) {
+        normalized[key] = schema[key];
+      }
     }
     
-    return cloned;
+    console.log('[JSON Parser] Normalized schema keys order:', Object.keys(normalized));
+    return normalized;
   }
 
   /**
@@ -92,21 +111,28 @@ export class JsonParserPlugin implements FormatParserPlugin {
         required.push(key);
       }
 
-      const schema: any = {
+      // Build schema with proper ordering from the start
+      if (isRoot) {
+        const title = this.generateTitleFromFields(Object.keys(properties));
+        const description = `Schema for ${title.replace(' Schema', '')}`;
+        
+        console.log('[JSON Parser] Generated schema from data, keys will be:', ['$schema', 'title', 'description', 'type', 'properties', 'required']);
+        
+        return {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          title,
+          description,
+          type: 'object',
+          properties,
+          ...(required.length > 0 && { required }),
+        };
+      }
+
+      return {
         type: 'object',
         properties,
         ...(required.length > 0 && { required }),
       };
-
-      // Add $schema, title and description only at root
-      if (isRoot) {
-        const title = this.generateTitleFromFields(Object.keys(properties));
-        schema.$schema = 'http://json-schema.org/draft-07/schema#';
-        schema.title = title;
-        schema.description = `Schema for ${title.replace(' Schema', '')}`;
-      }
-
-      return schema;
     }
 
     if (type === 'array') {

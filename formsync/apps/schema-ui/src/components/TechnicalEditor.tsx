@@ -174,42 +174,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     }
   }, [editorValue]);
 
-  // Helper to ensure schema has a name
-  const ensureSchemaName = useCallback(async (): Promise<string> => {
-    if (schemaName && schemaName.trim()) {
-      return schemaName;
-    }
-
-    // No name - get AI suggestion from raw input
-    try {
-      let fields: string[] = [];
-      try {
-        const parsed = JSON.parse(editorValue);
-        if (parsed.properties) {
-          fields = Object.keys(parsed.properties);
-        }
-      } catch (e) {
-        // Ignore
-      }
-
-      const response = await schemaApi.suggestName({
-        rawInput: editorValue,  // Pass raw XML/YAML/JSON to LLM
-        format,                   // Pass format so LLM knows what it's analyzing
-        fields,                   // Fallback for pattern matching
-        schemaContent: editorValue, // Additional fallback
-      });
-
-      const suggestedName = response.data.suggestedName;
-      setSchemaName(suggestedName);
-      return suggestedName;
-    } catch (error) {
-      // Fallback to generic name
-      const fallbackName = `Schema ${new Date().getTime()}`;
-      setSchemaName(fallbackName);
-      return fallbackName;
-    }
-  }, [schemaName, editorValue, format]);
-
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
 
@@ -546,23 +510,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             onChange={(e) => setSchemaName(e.target.value)}
             className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
           />
-          <Button
-            onClick={handleSuggestName}
-            disabled={nameSuggestionLoading || !editorValue.trim()}
-            variant="outline"
-            size="lg"
-            className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20 px-4"
-            title="AI suggest a name based on schema content"
-          >
-            {nameSuggestionLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-            ) : (
-              <Wand2 className="h-5 w-5 text-purple-600" />
-            )}
-            <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
-              {nameSuggestionLoading ? 'Suggesting...' : 'AI Suggest'}
-            </span>
-          </Button>
         </div>
       </div>
 
