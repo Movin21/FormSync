@@ -28,6 +28,7 @@ import {
   Redo2,
   ChevronLeft,
   ChevronRight,
+  Wand2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -66,6 +67,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
+  // Schema name state
+  const [schemaName, setSchemaName] = useState('');
+  const [nameSuggestionLoading, setNameSuggestionLoading] = useState(false);
 
   // Validation state
   const [isInputValid, setIsInputValid] = useState(false);
@@ -113,11 +118,95 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (schemaFromBuilder && schemaFromBuilder.trim() && schemaFromBuilder !== editorValue) {
       setEditorValue(schemaFromBuilder);
       setFormat('json'); // Template Builder always generates JSON
+      
+      // Extract schema name from title if present
+      try {
+        const schema = JSON.parse(schemaFromBuilder);
+        if (schema.title) {
+          setSchemaName(schema.title);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
       toast.success('Schema loaded from Template Builder!');
       onStageUpdate?.('Enter Schema', 'complete');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
+
+  // AI Suggest Name Handler
+  const handleSuggestName = useCallback(async () => {
+    if (!editorValue.trim()) {
+      toast.error('Please enter schema content first');
+      return;
+    }
+
+    setNameSuggestionLoading(true);
+    try {
+      // Parse schema to extract field names
+      let fields: string[] = [];
+      try {
+        const parsedSchema = JSON.parse(editorValue);
+        if (parsedSchema.properties) {
+          fields = Object.keys(parsedSchema.properties);
+        }
+      } catch (e) {
+        // If not JSON, try to extract field-like patterns
+      }
+
+      const response = await schemaApi.suggestName({
+        fields,
+        schemaContent: editorValue,
+      });
+
+      const suggestedName = response.data.suggestedName;
+      setSchemaName(suggestedName);
+      toast.success('AI suggested a schema name!', {
+        description: `"${suggestedName}"`,
+      });
+    } catch (error: any) {
+      toast.error('Failed to suggest name', {
+        description: error.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setNameSuggestionLoading(false);
+    }
+  }, [editorValue]);
+
+  // Helper to ensure schema has a name
+  const ensureSchemaName = useCallback(async (): Promise<string> => {
+    if (schemaName.trim()) {
+      return schemaName.trim();
+    }
+
+    // Generate AI suggestion if no name provided
+    try {
+      let fields: string[] = [];
+      try {
+        const parsedSchema = JSON.parse(editorValue);
+        if (parsedSchema.properties) {
+          fields = Object.keys(parsedSchema.properties);
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      const response = await schemaApi.suggestName({
+        fields,
+        schemaContent: editorValue,
+      });
+
+      const suggestedName = response.data.suggestedName;
+      setSchemaName(suggestedName);
+      return suggestedName;
+    } catch (error) {
+      // Fallback to generic name
+      const fallbackName = `Schema ${new Date().getTime()}`;
+      setSchemaName(fallbackName);
+      return fallbackName;
+    }
+  }, [schemaName, editorValue]);
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
@@ -221,8 +310,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     setConvertLoading(true);
     onStageUpdate?.('Schema Conversion', 'loading');
     try {
+      // Ensure schema has a name
+      const finalName = await ensureSchemaName();
+
       // Convert and get the schema back (updated store action returns it)
       const schema = await convertSchema(editorValue, format);
+
+      // Add name to schema's title property
+      if (schema) {
+        schema.title = finalName;
+        setCurrentSchema(schema);
+      }
 
       toast.success('Schema converted to JSON Schema successfully!');
       onStageUpdate?.('Schema Conversion', 'complete');
@@ -241,7 +339,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } finally {
       setConvertLoading(false);
     }
-  }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
+  }, [editorValue, format, convertSchema, clearError, onStageUpdate, ensureSchemaName, setCurrentSchema]);
 
   // Quick Fix - Apply syntax corrections
   const handleAIFix = useCallback(async () => {
@@ -427,6 +525,39 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   return (
     <div className="flex flex-col gap-4 h-full">
+      {/* Schema Name Input Section */}
+      <div className="w-full">
+        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+          Schema Name
+        </h3>
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            placeholder="e.g., User Registration Form, Contact Schema"
+            value={schemaName}
+            onChange={(e) => setSchemaName(e.target.value)}
+            className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          />
+          <Button
+            onClick={handleSuggestName}
+            disabled={nameSuggestionLoading || !editorValue.trim()}
+            variant="outline"
+            size="lg"
+            className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20 px-4"
+            title="AI suggest a name based on schema content"
+          >
+            {nameSuggestionLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+            ) : (
+              <Wand2 className="h-5 w-5 text-purple-600" />
+            )}
+            <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
+              {nameSuggestionLoading ? 'Suggesting...' : 'AI Suggest'}
+            </span>
+          </Button>
+        </div>
+      </div>
+
       {/* Header Row: Format Selector (Left) + Next: Form Builder Button (Right) */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         {/* Left: Format Selector */}
