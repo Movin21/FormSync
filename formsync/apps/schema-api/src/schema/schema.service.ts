@@ -25,6 +25,7 @@ import {
   UpdateSchemaDto,
   ApplySuggestionDto,
   RecalculateQualityDto,
+  SuggestNameDto,
 } from './dto/schema.dto';
 
 @Injectable()
@@ -174,6 +175,100 @@ export class SchemaService {
 
     walk(schema);
     return total === 0 ? 1 : covered / total;
+  }
+
+  /**
+   * POST /schema/suggest-name
+   * Suggest a meaningful schema name based on field names and content
+   */
+  async suggestSchemaName(dto: SuggestNameDto) {
+    try {
+      // Extract field names from DTO
+      let fields: string[] = [];
+      
+      if (dto.fields && dto.fields.length > 0) {
+        fields = dto.fields;
+      } else if (dto.schemaContent) {
+        try {
+          const parsed = typeof dto.schemaContent === 'string' 
+            ? JSON.parse(dto.schemaContent) 
+            : dto.schemaContent;
+          if (parsed.properties) {
+            fields = Object.keys(parsed.properties);
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+
+      if (!fields || fields.length === 0) {
+        // No fields - return generic name
+        return {
+          suggestedName: `Form Schema`,
+          confidence: 'low',
+        };
+      }
+
+      // Analyze fields to generate a contextual name
+      const suggestedName = this.generateNameFromFields(fields);
+
+      console.log('[SchemaService] Suggested name:', suggestedName, 'from fields:', fields);
+
+      return {
+        suggestedName,
+        confidence: 'high',
+      };
+    } catch (error) {
+      console.error('[SchemaService] Failed to suggest name:', error);
+      
+      // Fallback to generic name
+      return {
+        suggestedName: `Form Schema`,
+        confidence: 'low',
+      };
+    }
+  }
+
+  /**
+   * Helper: Generate a contextual name from field names
+   */
+  private generateNameFromFields(fields: string[]): string {
+    // Common patterns and their schema names
+    const patterns = [
+      { keywords: ['user', 'username', 'password', 'email'], name: 'User Registration' },
+      { keywords: ['login', 'username', 'password'], name: 'Login Form' },
+      { keywords: ['contact', 'phone', 'email', 'message'], name: 'Contact Form' },
+      { keywords: ['address', 'street', 'city', 'zip', 'state'], name: 'Address Information' },
+      { keywords: ['payment', 'card', 'billing'], name: 'Payment Information' },
+      { keywords: ['profile', 'bio', 'avatar'], name: 'User Profile' },
+      { keywords: ['order', 'product', 'quantity', 'price'], name: 'Order Form' },
+      { keywords: ['feedback', 'rating', 'comment'], name: 'Feedback Form' },
+      { keywords: ['survey', 'question', 'answer'], name: 'Survey Form' },
+    ];
+
+    // Convert fields to lowercase for matching
+    const lowerFields = fields.map(f => f.toLowerCase());
+    
+    // Find best matching pattern
+    for (const pattern of patterns) {
+      const matchCount = pattern.keywords.filter(kw => 
+        lowerFields.some(f => f.includes(kw))
+      ).length;
+      
+      // If at least 2 keywords match, use this pattern
+      if (matchCount >= 2) {
+        return pattern.name;
+      }
+    }
+
+    // No pattern matched - generate from first field
+    const primaryField = fields[0];
+    const formatted = primaryField
+      .split(/[_-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return `${formatted} Form`;
   }
 
   /**
