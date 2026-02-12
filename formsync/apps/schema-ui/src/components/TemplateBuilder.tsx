@@ -560,20 +560,6 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 onChange={(e) => setSchemaName(e.target.value)}
                 className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
-              <Button
-                onClick={handleSuggestName}
-                disabled={nameSuggestionLoading || fields.length === 0}
-                variant="ghost"
-                size="sm"
-                className="px-3 hover:bg-purple-50 dark:hover:bg-purple-950/20"
-                title="AI suggest name"
-              >
-                {nameSuggestionLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                ) : (
-                  <Wand2 className="h-4 w-4 text-purple-600" />
-                )}
-              </Button>
             </div>
           </div>
 
