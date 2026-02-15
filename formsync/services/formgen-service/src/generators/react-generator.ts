@@ -78,13 +78,25 @@ export function generateAppTsx(formModel: FormModel): string {
     formBody = `<div className="empty-state">Form is empty.</div>`;
   }
 
-  return `import React, { FormEvent } from 'react';
+  return `import React, { FormEvent, useState } from 'react';
 
 function App() {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (data: Record<string, FormDataEntryValue>): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    // Add field-level validation here — key matches the field 'name' attribute.
+    // Example: if (!data['email']) errs['email'] = 'Email is required.';
+    return errs;
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+    const errs = validate(data);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     console.log('Form submitted:', data);
     // Add your form submission logic here
   };
@@ -164,45 +176,115 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
 
   // ── input element ──────────────────────────────────────────────────────────
   let inputElement: string;
+  // Build aria attributes shared across input types
+  // - aria-required: explicitly declares the field as required for AT
+  // - aria-describedby: links to help text and/or error message spans
+  // - aria-invalid: evaluated at runtime via {errors['key'] ? 'true' : 'false'}
+  // - aria-errormessage: points to the error span when invalid
+  const describedByParts: string[] = [];
+  if (helpText) describedByParts.push(`${id}-help`);
+  describedByParts.push(`${id}-error`);
+  const ariaDescribedBy = `aria-describedby="${describedByParts.join(' ')}"`;
+  const ariaRequired = required ? `aria-required="true"` : '';
+  const ariaInvalid = `aria-invalid={errors['${key}'] ? 'true' : 'false'}`;
+  const ariaErrMsg = `aria-errormessage="${id}-error"`;
+
   switch (type) {
     case 'textarea':
-      inputElement = `<textarea name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''}></textarea>`;
+      inputElement = `<textarea
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            placeholder="${escapeHtml(placeholder)}"
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          ></textarea>`;
       break;
     case 'select': {
       const options = field.constraints?.enum || [];
-      inputElement = `<select name="${key}" id="${id}" className="field-input" ${required ? 'required' : ''}>
+      inputElement = `<select
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          >
             <option value="">${escapeHtml(placeholder) || 'Select...'}</option>
             ${options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('\n            ')}
           </select>`;
       break;
     }
     case 'checkbox':
-      inputElement = `<input type="checkbox" name="${key}" id="${id}" className="field-input" />`;
+      // Checkboxes use aria-checked semantics; aria-required still applies
+      inputElement = `<input
+            type="checkbox"
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          />`;
       break;
     default:
       // text, email, password, number, date
-      inputElement = `<input type="${type}" name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''} />`;
+      inputElement = `<input
+            type="${type}"
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            placeholder="${escapeHtml(placeholder)}"
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          />`;
   }
 
-  // ── checkbox wrapper ───────────────────────────────────────────────────────
+  // ── checkbox wrapper ─────────────────────────────────────────────────────
+  // Checkboxes render the label after the input; error lives below the group
   if (type === 'checkbox') {
-    const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`];
+    const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`, `flexWrap: 'wrap'`];
     return `<div className="field-item checkbox-item" ${buildStyle(checkboxExtra)}>
           ${inputElement}
           <label htmlFor="${id}" className="field-label" style={{ marginBottom: 0 }}>
-            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
+            ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
-          ${helpText ? `<small className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${id}-help" className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+          <span
+            id="${id}-error"
+            className="field-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {errors['${key}']}
+          </span>
         </div>`;
   }
 
-  // ── standard field wrapper ─────────────────────────────────────────────────
+  // ── standard field wrapper ───────────────────────────────────────────────
   return `<div className="field-item" ${buildStyle()}>
           <label htmlFor="${id}" className="field-label">
-            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
+            ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
           ${inputElement}
-          ${helpText ? `<small className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${id}-help" className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
+          <span
+            id="${id}-error"
+            className="field-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {errors['${key}']}
+          </span>
         </div>`;
 }
 

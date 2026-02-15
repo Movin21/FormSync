@@ -257,6 +257,27 @@ body {
   margin-top: 0.25rem;
 }
 
+/* Accessible error message — hidden when empty, visible when there is an error */
+.field-error {
+  display: block;
+  min-height: 1.25rem; /* reserve space so the layout doesn't jump */
+  font-size: 0.8rem;
+  color: var(--color-error);
+  margin-top: 0.2rem;
+}
+
+/* Visual treatment for invalid inputs — mirrors aria-invalid="true" */
+.field-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.field-input[aria-invalid="true"]:focus {
+  outline: none;
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
 /* Submit Button */
 .submit-button {
   width: 100%;
