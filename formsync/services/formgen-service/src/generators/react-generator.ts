@@ -78,7 +78,20 @@ export function generateAppTsx(formModel: FormModel): string {
     formBody = `<div className="empty-state">Form is empty.</div>`;
   }
 
+  // Build a static key → DOM-id map so the generated form can auto-focus
+  // the first invalid field without needing React refs.
+  const allFields = collectAllFields(orderedFields);
+  const fieldIdMapEntries = allFields
+    .map((f: FieldModel) => `  '${f.key}': '${f.id}'`)
+    .join(',\n');
+
   return `import React, { FormEvent, useState } from 'react';
+
+// Maps every field's form key to its DOM id.
+// Generated at build time — do not edit manually.
+const FIELD_ID_MAP: Record<string, string> = {
+${fieldIdMapEntries}
+};
 
 function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -96,7 +109,15 @@ function App() {
     const data = Object.fromEntries(formData.entries());
     const errs = validate(data);
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      // Move focus to the first invalid field so keyboard/AT users are guided.
+      const firstErrorKey = Object.keys(errs)[0];
+      const firstErrorId = FIELD_ID_MAP[firstErrorKey];
+      if (firstErrorId) {
+        (document.getElementById(firstErrorId) as HTMLElement | null)?.focus();
+      }
+      return;
+    }
     console.log('Form submitted:', data);
     // Add your form submission logic here
   };
@@ -286,6 +307,22 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
             {errors['${key}']}
           </span>
         </div>`;
+}
+
+/**
+ * Recursively collect every leaf field (including group children) so we can
+ * build a complete key → id mapping used by FIELD_ID_MAP in the App component.
+ */
+function collectAllFields(fields: FieldModel[]): FieldModel[] {
+  const result: FieldModel[] = [];
+  for (const f of fields) {
+    if (f.type === 'group' && f.children && f.children.length > 0) {
+      result.push(...collectAllFields(f.children));
+    } else {
+      result.push(f);
+    }
+  }
+  return result;
 }
 
 /**
