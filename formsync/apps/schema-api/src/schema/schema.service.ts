@@ -320,6 +320,40 @@ export class SchemaService {
    * (NEW method for frontend validation button)
    */
   async validateSyntaxOnly(dto: ConvertSchemaDto) {
+    // Check if input is already an enhanced schema (JSON only)
+    if (dto.format === 'json' || !dto.format) {
+      try {
+        const parsed = JSON.parse(dto.input);
+        const metadata = parsed['x-formsync-metadata'];
+        
+        if (metadata && metadata.enhanced === true) {
+          const enhancementCount = metadata.enhancementCount || 1;
+          const enhancedAt = metadata.enhancedAt 
+            ? new Date(metadata.enhancedAt).toLocaleString() 
+            : 'unknown time';
+          const model = metadata.model || 'AI';
+          
+          throw new BadRequestException({
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            isEnhancedSchema: true,
+            metadata: {
+              enhancementCount,
+              enhancedAt: metadata.enhancedAt,
+              model,
+            },
+          });
+        }
+      } catch (parseError) {
+        // If it's our enhanced schema error, re-throw it
+        if (parseError instanceof BadRequestException) {
+          throw parseError;
+        }
+        // Otherwise, continue with normal validation (might be invalid JSON)
+      }
+    }
+    
     // Perform strict syntax validation (no conversion)
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
     
@@ -375,6 +409,40 @@ export class SchemaService {
    * ENHANCED: Performs STRICT SYNTAX VALIDATION before any processing
    */
   async convertSchema(dto: ConvertSchemaDto) {
+    // STEP 0: Check if input is already an enhanced schema (JSON only)
+    if (dto.format === 'json' || !dto.format) {
+      try {
+        const parsed = JSON.parse(dto.input);
+        const metadata = parsed['x-formsync-metadata'];
+        
+        if (metadata && metadata.enhanced === true) {
+          const enhancementCount = metadata.enhancementCount || 1;
+          const enhancedAt = metadata.enhancedAt 
+            ? new Date(metadata.enhancedAt).toLocaleString() 
+            : 'unknown time';
+          const model = metadata.model || 'AI';
+          
+          throw new BadRequestException({
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            isEnhancedSchema: true,
+            metadata: {
+              enhancementCount,
+              enhancedAt: metadata.enhancedAt,
+              model,
+            },
+          });
+        }
+      } catch (parseError) {
+        // If it's our enhanced schema error, re-throw it
+        if (parseError instanceof BadRequestException) {
+          throw parseError;
+        }
+        // Otherwise, continue with normal validation (might be invalid JSON or YAML/XML)
+      }
+    }
+    
     // STEP 1: STRICT SYNTAX VALIDATION (NEW)
     // Validate syntax BEFORE any other processing
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
