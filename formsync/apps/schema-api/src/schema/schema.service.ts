@@ -132,6 +132,8 @@ export class SchemaService {
           s.id === dto.suggestion.id ? result.suggestion.applied : s.applied
         ).length,
         totalSuggestions: dto.allSuggestions.length,
+        totalChanges: dto.aiChanges.length,
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.schema),
       },
     };
   }
@@ -159,6 +161,7 @@ export class SchemaService {
 
   /**
    * Helper: Calculate accessibility coverage for backward compatibility
+   * UPDATED: Matches Quality Engine logic - only counts user-input fields
    */
   private calculateAccessibilityCoverage(schema: any): number {
     let total = 0;
@@ -166,15 +169,42 @@ export class SchemaService {
 
     const walk = (obj: any) => {
       if (!obj?.properties) return;
-      for (const prop of Object.values(obj.properties)) {
-        total++;
-        if ((prop as any)['x-accessibility']) covered++;
-        if ((prop as any).type === 'object') walk(prop);
+      for (const [key, prop] of Object.entries(obj.properties)) {
+        const property = prop as any;
+        const type = Array.isArray(property.type) ? property.type[0] : property.type;
+        
+        // Only count user-input fields (string, number, integer, boolean)
+        // NOT structural fields (object, array)
+        const isUserInputField = ['string', 'number', 'integer', 'boolean'].includes(type);
+        
+        if (isUserInputField) {
+          total++;
+          if (property['x-accessibility']?.label) {
+            covered++;
+          }
+        }
+        
+        // Recurse into nested objects
+        if (property.type === 'object' && property.properties) {
+          walk(property);
+        }
       }
     };
 
     walk(schema);
     return total === 0 ? 1 : covered / total;
+  }
+
+  /**
+   * DELETE /schema/cache
+   * Clear all cached conversion results
+   */
+  async clearCache(): Promise<{ success: boolean; message: string }> {
+    await this.redis.flushAll();
+    return {
+      success: true,
+      message: 'Cache cleared successfully',
+    };
   }
 
   /**
