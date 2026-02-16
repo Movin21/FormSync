@@ -235,6 +235,24 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } catch (error: any) {
       setIsInputValid(false);
 
+      // Check if this is an already enhanced schema
+      if (error.response?.data?.isEnhancedSchema) {
+        const backendError = error.response.data;
+        const metadata = backendError.metadata || {};
+        
+        setValidationError(backendError.details || 'This is already an enhanced schema');
+        
+        onStageUpdate?.('Input Validation', 'error');
+        
+        toast.error('Already Enhanced Schema Detected', {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+          duration: 6000,
+        });
+        
+        setShowValidationDialog(true);
+        return;
+      }
+
       // Check if this is a syntax validation error from backend
       if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
         const backendError = error.response.data;
@@ -312,8 +330,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         await useSchemaStore.getState().validateSchema(schema);
       }
 
-    } catch (error) {
-      toast.error('Failed to convert schema');
+    } catch (error: any) {
+      // Check if this is an already enhanced schema
+      if (error.response?.data?.isEnhancedSchema) {
+        const backendError = error.response.data;
+        const metadata = backendError.metadata || {};
+        
+        toast.error('Already Enhanced Schema Detected', {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+          duration: 6000,
+        });
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Failed to convert schema');
+      }
       onStageUpdate?.('Schema Conversion', 'error');
     } finally {
       setConvertLoading(false);
@@ -790,14 +819,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                 onChange={handleEditorChange}
                 theme="vs-dark"
                 onMount={(editor, monaco) => {
-                  // Show keyboard shortcuts hint
-                  setTimeout(() => {
-                    toast.info('Keyboard Shortcuts', {
-                      description: 'Ctrl+S: Enhance | Ctrl+K: Format | Ctrl+Shift+V: Validate',
-                      duration: 5000,
-                    });
-                  }, 1000);
-
                   // Add keyboard shortcuts
                   editor.addAction({
                     id: 'enhance-schema',
