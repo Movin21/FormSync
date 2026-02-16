@@ -152,6 +152,13 @@ export class SchemaController {
     return this.schemaService.updateSchema(id, dto);
   }
 
+  @Delete('cache')
+  @ApiOperation({ summary: 'Clear all cached conversion results', tags: ['cache'] })
+  @ApiResponse({ status: 200, description: 'Cache cleared successfully' })
+  async clearCache() {
+    return this.schemaService.clearCache();
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete schema' })
   @ApiResponse({ status: 200, description: 'Schema deleted successfully' })
