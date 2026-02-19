@@ -1,6 +1,6 @@
 /**
  * Template Builder Component - Enhanced Non-Technical Version
- * 
+ *
  * Visual schema builder for non-technical users with:
  * - Field-by-field schema creation
  * - "Use Schema" button to transfer to Technical Editor
@@ -10,11 +10,59 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft, Wand2, Loader2, Pencil, Type, ToggleRight, List, Braces } from 'lucide-react';
+import {
+  Plus,
+  FileJson,
+  Trash2,
+  ArrowRight,
+  Check,
+  GripVertical,
+  Mail,
+  Phone,
+  Link,
+  Calendar,
+  Lock,
+  AlignLeft,
+  Hash,
+  ToggleLeft,
+  Wand2,
+  Loader2,
+  Pencil,
+  Type,
+  ToggleRight,
+  List,
+  Braces,
+  Copy,
+  CheckCheck,
+  FileText,
+  ChevronDown,
+  MessageSquare,
+  UserPlus,
+  Star,
+  Briefcase,
+  LifeBuoy,
+  ShoppingCart,
+  Sparkles,
+  Layers,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   AlertDialog,
@@ -65,57 +113,57 @@ const FIELD_TEMPLATES: FieldTemplate[] = [
     type: 'string',
     description: 'Email address with validation',
     icon: <Mail className="h-4 w-4" />,
-    color: 'blue'
+    color: 'blue',
   },
   {
     name: 'phone',
     type: 'string',
     description: 'Phone number',
     icon: <Phone className="h-4 w-4" />,
-    color: 'green'
+    color: 'green',
   },
   {
     name: 'website',
     type: 'string',
     description: 'URL/Website address',
     icon: <Link className="h-4 w-4" />,
-    color: 'purple'
+    color: 'purple',
   },
   {
     name: 'date',
     type: 'string',
     description: 'Date picker',
     icon: <Calendar className="h-4 w-4" />,
-    color: 'orange'
+    color: 'orange',
   },
   {
     name: 'password',
     type: 'string',
     description: 'Password field',
     icon: <Lock className="h-4 w-4" />,
-    color: 'red'
+    color: 'red',
   },
   {
     name: 'description',
     type: 'string',
     description: 'Long text area',
     icon: <AlignLeft className="h-4 w-4" />,
-    color: 'gray'
+    color: 'gray',
   },
   {
     name: 'age',
     type: 'number',
     description: 'Numeric value',
     icon: <Hash className="h-4 w-4" />,
-    color: 'indigo'
+    color: 'indigo',
   },
   {
     name: 'accept_terms',
     type: 'boolean',
     description: 'Checkbox/Toggle',
     icon: <ToggleLeft className="h-4 w-4" />,
-    color: 'teal'
-  }
+    color: 'teal',
+  },
 ];
 
 // Pre-built schema templates
@@ -125,106 +173,228 @@ interface SchemaTemplate {
   fields: Omit<SchemaField, 'id'>[];
 }
 
+const TEMPLATE_CONFIG: Record<string, { icon: React.ReactNode }> = {
+  'Contact Form':      { icon: <MessageSquare className="h-4 w-4" /> },
+  'Newsletter Signup': { icon: <Mail className="h-4 w-4" /> },
+  'Login Form':        { icon: <Lock className="h-4 w-4" /> },
+  'Registration Form': { icon: <UserPlus className="h-4 w-4" /> },
+  'Feedback Form':     { icon: <Star className="h-4 w-4" /> },
+  'Booking Form':      { icon: <Calendar className="h-4 w-4" /> },
+  'Job Application':   { icon: <Briefcase className="h-4 w-4" /> },
+  'Support Ticket':    { icon: <LifeBuoy className="h-4 w-4" /> },
+  'Order Form':        { icon: <ShoppingCart className="h-4 w-4" /> },
+};
+
 const SCHEMA_TEMPLATES: SchemaTemplate[] = [
   {
     name: 'Contact Form',
     description: 'Basic contact information',
     fields: [
-      { name: 'name', type: 'string', required: true, description: 'Full name', minLength: 2, maxLength: 100 },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'name',
+        type: 'string',
+        required: true,
+        description: 'Full name',
+        minLength: 2,
+        maxLength: 100,
+      },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'phone', type: 'string', required: false, description: 'Phone number' },
-      { name: 'message', type: 'string', required: true, description: 'Message content', minLength: 10, maxLength: 1000 }
-    ]
+      {
+        name: 'message',
+        type: 'string',
+        required: true,
+        description: 'Message content',
+        minLength: 10,
+        maxLength: 1000,
+      },
+    ],
   },
   {
     name: 'Newsletter Signup',
     description: 'Email subscription',
     fields: [
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'first_name', type: 'string', required: true, description: 'First name' },
       { name: 'last_name', type: 'string', required: false, description: 'Last name' },
-      { name: 'consent', type: 'boolean', required: true, description: 'Marketing consent' }
-    ]
+      { name: 'consent', type: 'boolean', required: true, description: 'Marketing consent' },
+    ],
   },
   {
     name: 'Login Form',
     description: 'User authentication',
     fields: [
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
-      { name: 'remember_me', type: 'boolean', required: false, description: 'Remember me' }
-    ]
+      { name: 'remember_me', type: 'boolean', required: false, description: 'Remember me' },
+    ],
   },
   {
     name: 'Registration Form',
     description: 'New user signup',
     fields: [
-      { name: 'username', type: 'string', required: true, description: 'Unique username', minLength: 3, maxLength: 20 },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'username',
+        type: 'string',
+        required: true,
+        description: 'Unique username',
+        minLength: 3,
+        maxLength: 20,
+      },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
-      { name: 'confirm_password', type: 'string', required: true, description: 'Confirm password', minLength: 8 },
-      { name: 'terms_accepted', type: 'boolean', required: true, description: 'Accept terms and conditions' }
-    ]
+      {
+        name: 'confirm_password',
+        type: 'string',
+        required: true,
+        description: 'Confirm password',
+        minLength: 8,
+      },
+      {
+        name: 'terms_accepted',
+        type: 'boolean',
+        required: true,
+        description: 'Accept terms and conditions',
+      },
+    ],
   },
   {
     name: 'Feedback Form',
     description: 'Customer feedback',
     fields: [
       { name: 'name', type: 'string', required: true, description: 'Your name' },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
-      { name: 'rating', type: 'number', required: true, description: 'Rating (1-5)', minimum: 1, maximum: 5 },
-      { name: 'comments', type: 'string', required: false, description: 'Additional comments', maxLength: 500 },
-      { name: 'would_recommend', type: 'boolean', required: true, description: 'Would you recommend us?' }
-    ]
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
+      {
+        name: 'rating',
+        type: 'number',
+        required: true,
+        description: 'Rating (1-5)',
+        minimum: 1,
+        maximum: 5,
+      },
+      {
+        name: 'comments',
+        type: 'string',
+        required: false,
+        description: 'Additional comments',
+        maxLength: 500,
+      },
+      {
+        name: 'would_recommend',
+        type: 'boolean',
+        required: true,
+        description: 'Would you recommend us?',
+      },
+    ],
   },
   {
     name: 'Booking Form',
     description: 'Appointment booking',
     fields: [
       { name: 'name', type: 'string', required: true, description: 'Full name' },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'phone', type: 'string', required: true, description: 'Phone number' },
       { name: 'date', type: 'string', required: true, description: 'Booking date', format: 'date' },
       { name: 'time', type: 'string', required: true, description: 'Preferred time' },
-      { name: 'service', type: 'string', required: true, description: 'Service type' }
-    ]
+      { name: 'service', type: 'string', required: true, description: 'Service type' },
+    ],
   },
   {
     name: 'Job Application',
     description: 'Employment application',
     fields: [
       { name: 'full_name', type: 'string', required: true, description: 'Full name' },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'phone', type: 'string', required: true, description: 'Phone number' },
       { name: 'resume', type: 'string', required: true, description: 'Resume/CV' },
       { name: 'cover_letter', type: 'string', required: false, description: 'Cover letter' },
-      { name: 'position', type: 'string', required: true, description: 'Position applied for' }
-    ]
+      { name: 'position', type: 'string', required: true, description: 'Position applied for' },
+    ],
   },
   {
     name: 'Support Ticket',
     description: 'Help desk request',
     fields: [
       { name: 'name', type: 'string', required: true, description: 'Your name' },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'subject', type: 'string', required: true, description: 'Issue subject' },
       { name: 'priority', type: 'string', required: true, description: 'Priority level' },
-      { name: 'description', type: 'string', required: true, description: 'Issue description', minLength: 20 },
-      { name: 'attachments', type: 'string', required: false, description: 'File attachments' }
-    ]
+      {
+        name: 'description',
+        type: 'string',
+        required: true,
+        description: 'Issue description',
+        minLength: 20,
+      },
+      { name: 'attachments', type: 'string', required: false, description: 'File attachments' },
+    ],
   },
   {
     name: 'Order Form',
     description: 'Purchase order',
     fields: [
       { name: 'customer_name', type: 'string', required: true, description: 'Customer name' },
-      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      {
+        name: 'email',
+        type: 'string',
+        required: true,
+        description: 'Email address',
+        format: 'email',
+      },
       { name: 'product', type: 'string', required: true, description: 'Product name' },
       { name: 'quantity', type: 'number', required: true, description: 'Quantity', minimum: 1 },
       { name: 'shipping_address', type: 'string', required: true, description: 'Shipping address' },
-      { name: 'payment_method', type: 'string', required: true, description: 'Payment method' }
-    ]
-  }
+      { name: 'payment_method', type: 'string', required: true, description: 'Payment method' },
+    ],
+  },
 ];
 
 // Sortable Field Item Component
@@ -237,13 +407,46 @@ interface SortableFieldItemProps {
   isDragOverlay?: boolean;
 }
 
-const TYPE_CONFIG: Record<string, { color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  string:  { color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800', icon: <Type className="h-3 w-3" /> },
-  number:  { color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',   icon: <Hash className="h-3 w-3" /> },
-  integer: { color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',   icon: <Hash className="h-3 w-3" /> },
-  boolean: { color: 'text-emerald-600',bg: 'bg-emerald-50 dark:bg-emerald-950/30',border: 'border-emerald-200 dark:border-emerald-800',icon: <ToggleRight className="h-3 w-3" /> },
-  array:   { color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', icon: <List className="h-3 w-3" /> },
-  object:  { color: 'text-pink-600',   bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',   icon: <Braces className="h-3 w-3" /> },
+const TYPE_CONFIG: Record<
+  string,
+  { color: string; bg: string; border: string; icon: React.ReactNode }
+> = {
+  string: {
+    color: 'text-violet-600',
+    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    border: 'border-violet-200 dark:border-violet-800',
+    icon: <Type className="h-3 w-3" />,
+  },
+  number: {
+    color: 'text-blue-600',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    border: 'border-blue-200 dark:border-blue-800',
+    icon: <Hash className="h-3 w-3" />,
+  },
+  integer: {
+    color: 'text-blue-600',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    border: 'border-blue-200 dark:border-blue-800',
+    icon: <Hash className="h-3 w-3" />,
+  },
+  boolean: {
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    border: 'border-emerald-200 dark:border-emerald-800',
+    icon: <ToggleRight className="h-3 w-3" />,
+  },
+  array: {
+    color: 'text-orange-600',
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    border: 'border-orange-200 dark:border-orange-800',
+    icon: <List className="h-3 w-3" />,
+  },
+  object: {
+    color: 'text-pink-600',
+    bg: 'bg-pink-50 dark:bg-pink-950/30',
+    border: 'border-pink-200 dark:border-pink-800',
+    icon: <Braces className="h-3 w-3" />,
+  },
 };
 
 const getTypeConfig = (type: string) => TYPE_CONFIG[type] || TYPE_CONFIG.string;
@@ -276,29 +479,39 @@ const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = 
       </div>
 
       {/* Avatar */}
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
-        tc.bg
-      } ${tc.color}`}>
+      <div
+        className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
+          tc.bg
+        } ${tc.color}`}
+      >
         {field.name[0].toUpperCase()}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 truncate">{field.name}</span>
+          <span className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 truncate">
+            {field.name}
+          </span>
           {field.required && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex-shrink-0">required</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex-shrink-0">
+              required
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
-            tc.bg
-          } ${tc.color} ${tc.border}`}>
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+              tc.bg
+            } ${tc.color} ${tc.border}`}
+          >
             {tc.icon}
             {field.type}
           </span>
           {field.description && (
-            <span className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">{field.description}</span>
+            <span className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
+              {field.description}
+            </span>
           )}
         </div>
       </div>
@@ -336,14 +549,9 @@ const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = 
 };
 
 const SortableFieldItem: React.FC<SortableFieldItemProps> = (props) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: props.field.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.field.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -363,10 +571,7 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = (props) => {
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
     >
-      <FieldCard
-        {...props}
-        dragHandleProps={{ ...attributes, ...listeners }}
-      />
+      <FieldCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
     </motion.div>
   );
 };
@@ -379,7 +584,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  
+
   // Schema name state
   const [schemaName, setSchemaName] = useState('');
   const [nameSuggestionLoading, setNameSuggestionLoading] = useState(false);
@@ -415,14 +620,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   };
 
   const removeField = (id: string) => {
-    setFields(fields.filter(f => f.id !== id));
+    setFields(fields.filter((f) => f.id !== id));
     toast.success('Field removed');
   };
 
   const toggleRequired = (id: string) => {
-    setFields(fields.map(f => 
-      f.id === id ? { ...f, required: !f.required } : f
-    ));
+    setFields(fields.map((f) => (f.id === id ? { ...f, required: !f.required } : f)));
   };
 
   // Add field from template
@@ -432,7 +635,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       name: template.name,
       type: template.type,
       required: template.name === 'email' || template.name === 'password', // Email and password required by default
-      description: template.description
+      description: template.description,
     };
     setFields([...fields, newField]);
     toast.success(`${template.name} field added!`);
@@ -440,9 +643,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
   // Update field properties (for validation editing)
   const updateField = (id: string, updates: Partial<SchemaField>) => {
-    setFields(fields.map(f => 
-      f.id === id ? { ...f, ...updates } : f
-    ));
+    setFields(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   };
 
   // Handle drag end for reordering
@@ -462,15 +663,15 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     }
   };
 
-  const activeField = fields.find(f => f.id === activeId);
+  const activeField = fields.find((f) => f.id === activeId);
 
   // Load schema template
   const loadSchemaTemplate = (templateName: string) => {
-    const template = SCHEMA_TEMPLATES.find(t => t.name === templateName);
+    const template = SCHEMA_TEMPLATES.find((t) => t.name === templateName);
     if (template) {
-      const newFields = template.fields.map(field => ({
+      const newFields = template.fields.map((field) => ({
         ...field,
-        id: `field-${Date.now()}-${Math.random()}`
+        id: `field-${Date.now()}-${Math.random()}`,
       }));
       setFields(newFields);
       // Auto-fill schema name from template
@@ -483,7 +684,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     const properties: any = {};
     const required: string[] = [];
 
-    fields.forEach(field => {
+    fields.forEach((field) => {
       const fieldSchema: any = {
         type: field.type,
         ...(field.description && { description: field.description }),
@@ -526,7 +727,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
     setNameSuggestionLoading(true);
     try {
-      const fieldNames = fields.map(f => f.name);
+      const fieldNames = fields.map((f) => f.name);
       const response = await schemaApi.suggestName({ fields: fieldNames });
       const suggestedName = response.data.suggestedName;
       setSchemaName(suggestedName);
@@ -552,7 +753,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     let finalName = schemaName.trim();
     if (!finalName) {
       try {
-        const fieldNames = fields.map(f => f.name);
+        const fieldNames = fields.map((f) => f.name);
         const response = await schemaApi.suggestName({ fields: fieldNames });
         finalName = response.data.suggestedName;
         setSchemaName(finalName);
@@ -565,126 +766,151 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
     const schema = generateSchema(finalName);
     const schemaJson = JSON.stringify(schema, null, 2);
-    
+
     // Send to Technical Editor via callback
     if (onUseSchema) {
       onUseSchema(schemaJson);
     }
-    
-    toast.success('Schema transferred to Technical Editor! Switch to Technical Editor tab to continue.');
+
+    toast.success(
+      'Schema transferred to Technical Editor! Switch to Technical Editor tab to continue.'
+    );
   };
 
   return (
     <div className="h-full flex gap-4">
       {/* Left Panel - Field Creation */}
-      <Card className="w-80 border-2 border-indigo-200 dark:border-indigo-700 bg-white dark:bg-neutral-900 shadow-lg">
-        <CardHeader className="border-b border-indigo-200 dark:border-indigo-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
-          <CardTitle className="text-lg flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
-            <Plus className="h-5 w-5" />
+      <div className="w-72 flex flex-col gap-0 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden flex-shrink-0">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/40">
+          <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-md bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
+              <Plus className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            </span>
             Create Your Schema
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          {/* Schema Name Input */}
-          <div>
-            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
-              Schema Name *
+          </h2>
+          <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5 ml-8">
+            Define fields one by one
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* Schema Name */}
+          <div className="px-5 pt-5 pb-4">
+            <label className="block text-sm font-bold text-neutral-900 dark:text-neutral-100 mb-1.5">
+              Schema Name <span className="text-purple-500">*</span>
             </label>
-            <div className="flex gap-2">
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
               <input
                 type="text"
-                placeholder="e.g., Contact Form, User Registration"
+                placeholder="e.g., Contact Form"
                 value={schemaName}
                 onChange={(e) => setSchemaName(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 dark:focus:border-purple-500 transition-all"
               />
             </div>
           </div>
 
-          <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4" />
+          {/* Divider */}
+          <div className="mx-5 border-t border-dashed border-neutral-200 dark:border-neutral-800" />
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
-              Field Name *
-            </label>
-            <input
-              type="text"
-              placeholder="e.g., email, username"
-              value={newFieldName}
-              onChange={(e) => setNewFieldName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addField()}
-              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
-            />
-          </div>
+          {/* Add Field Section */}
+          <div className="px-5 py-4 space-y-3">
+            <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Add a Field</p>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
-              Field Type *
-            </label>
-            <select
-              value={newFieldType}
-              onChange={(e) => setNewFieldType(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
+            <div>
+              <label className="block text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
+                Name <span className="text-purple-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., email, username"
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addField()}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
+                Type <span className="text-purple-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={newFieldType}
+                  onChange={(e) => setNewFieldType(e.target.value)}
+                  className="w-full appearance-none px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all pr-8"
+                >
+                  <option value="string">String</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="array">Array</option>
+                  <option value="object">Object</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
+                Description <span className="text-neutral-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., User's email address"
+                value={newFieldDescription}
+                onChange={(e) => setNewFieldDescription(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addField()}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+              />
+            </div>
+
+            <button
+              onClick={addField}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 text-sm font-semibold hover:bg-purple-50 dark:hover:bg-purple-950/20 active:bg-purple-100 transition-colors"
             >
-              <option value="string">String</option>
-              <option value="number">Number</option>
-              <option value="boolean">Boolean</option>
-              <option value="array">Array</option>
-              <option value="object">Object</option>
-            </select>
+              <span className="flex items-center justify-center gap-2">
+                <Plus className="h-4 w-4 shrink-0 " />
+                Add Field
+              </span>
+            </button>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
-              Description <span className="normal-case font-normal text-neutral-400">(optional)</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g., User's email address"
-              value={newFieldDescription}
-              onChange={(e) => setNewFieldDescription(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addField()}
-              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
-            />
-          </div>
+          {/* Divider */}
+          <div className="mx-5 border-t border-dashed border-neutral-200 dark:border-neutral-800" />
 
-          <Button
-            onClick={addField}
-            size="lg"
-            variant="outline"
-            className="w-full gap-2 py-6 text-base font-semibold border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all"
-          >
-            <Plus className="h-5 w-5 text-indigo-600" />
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-              Add Field to Schema
-            </span>
-          </Button>
-
-          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">
-              Quick Add Fields
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Quick Add */}
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">
+              Quick Add
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
               {FIELD_TEMPLATES.map((template) => (
-                <Button
+                <button
                   key={template.name}
                   onClick={() => addFieldTemplate(template)}
-                  variant="outline"
-                  size="sm"
-                  className="justify-start gap-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   title={template.description}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600 text-neutral-700 dark:text-neutral-300 text-xs font-medium transition-all"
                 >
-                  {template.icon}
-                  <span className="text-xs capitalize">{template.name}</span>
-                </Button>
+                  <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0">
+                    {template.icon}
+                  </span>
+                  <span className="capitalize truncate">{template.name}</span>
+                </button>
               ))}
             </div>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center mt-4">
-              Press <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-neutral-600 dark:text-neutral-300 text-[11px] font-mono">Enter</kbd> to quickly add
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 text-center mt-3">
+              Press{' '}
+              <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[10px] font-mono text-neutral-600 dark:text-neutral-300">
+                Enter
+              </kbd>{' '}
+              to quickly add
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Center Panel - Field List */}
       <Card className="flex-1 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
@@ -693,14 +919,17 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-purple-500" />
               <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Schema Fields <span className="text-neutral-400 dark:text-neutral-500 font-normal">({fields.length})</span>
+                Schema Fields{' '}
+                <span className="text-neutral-400 dark:text-neutral-500 font-normal">
+                  ({fields.length})
+                </span>
               </CardTitle>
             </div>
             <Button
               onClick={handleUseSchema}
               disabled={fields.length === 0}
               size="sm"
-              className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              className="gap-1.5 bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 text-xs disabled:opacity-40 disabled:cursor-not-allowed shadow-none"
             >
               <Check className="h-3.5 w-3.5" />
               Use in Editor
@@ -723,11 +952,16 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         <CardContent className="pt-6">
           {fields.length === 0 ? (
             <div className="text-center py-20">
-             
-              <p className="text-xl font-bold text-neutral-700 dark:text-neutral-200 mb-2">No Fields Yet</p>
-              <p className="text-sm text-neutral-500 mb-4">Add fields from the left panel to build your schema</p>
+              <p className="text-xl font-bold text-neutral-700 dark:text-neutral-200 mb-2">
+                No Fields Yet
+              </p>
+              <p className="text-sm text-neutral-500 mb-4">
+                Add fields from the left panel to build your schema
+              </p>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
-                <span className="text-sm text-indigo-700 dark:text-indigo-300">← Start by adding your first field</span>
+                <span className="text-sm text-indigo-700 dark:text-indigo-300">
+                  ← Start by adding your first field
+                </span>
               </div>
             </div>
           ) : (
@@ -738,7 +972,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={fields.map(f => f.id)}
+                items={fields.map((f) => f.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <AnimatePresence>
@@ -756,10 +990,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                   </div>
                 </AnimatePresence>
               </SortableContext>
-              <DragOverlay dropAnimation={{
-                duration: 200,
-                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-              }}>
+              <DragOverlay
+                dropAnimation={{
+                  duration: 200,
+                  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                }}
+              >
                 {activeField ? (
                   <motion.div
                     initial={{ scale: 1 }}
@@ -784,206 +1020,306 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       </Card>
 
       {/* Right Panel - Live Preview */}
-      <Card className="w-96 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-        <CardHeader className="border-b border-neutral-200 dark:border-neutral-800">
+      <div
+        className="w-100 flex-shrink-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-950 overflow-hidden shadow-sm"
+        style={{ minHeight: '800px', maxHeight: '85vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Live Preview</CardTitle>
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs font-semibold text-neutral-200">Live Preview</span>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <pre className="text-xs bg-neutral-950 text-green-400 p-4 rounded-b-xl overflow-auto max-h-[600px] font-mono leading-relaxed">
-            {JSON.stringify(generateSchema(schemaName || undefined), null, 2)}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(
+                JSON.stringify(generateSchema(schemaName || undefined), null, 2)
+              );
+              toast.success('Copied to clipboard');
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
+          >
+            <Copy className="h-3 w-3" />
+            Copy
+          </button>
+        </div>
+        {/* Code */}
+        <div className="flex-1 overflow-auto">
+          <pre className="text-[12px] font-mono leading-relaxed p-4 text-emerald-400">
+            {JSON.stringify(generateSchema(schemaName || undefined), null, 2)
+              .split('\n')
+              .map((line, i) => (
+                <div key={i} className="flex">
+                  <span className="select-none text-neutral-600 w-7 shrink-0 text-right mr-4 leading-[1.7]">
+                    {i + 1}
+                  </span>
+                  <span className="leading-[1.7]">{line}</span>
+                </div>
+              ))}
           </pre>
-        </CardContent>
-      </Card>
+        </div>
+        {/* Footer */}
+        <div className="px-4 py-2.5 border-t border-neutral-800 bg-neutral-900 flex items-center justify-between">
+          <span className="text-[11px] text-neutral-500">
+            {fields.length} field{fields.length !== 1 ? 's' : ''}
+          </span>
+          <span className="text-[11px] text-neutral-500">JSON Schema Draft-07</span>
+        </div>
+      </div>
 
       {/* Template Selection Modal */}
       <AlertDialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-        <AlertDialogContent className="max-w-4xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Quick Start Templates</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl">
+          {/* Modal Header */}
+          <div className="px-7 pt-7 pb-5 border-b border-neutral-100 dark:border-neutral-800">
+            <div className="flex items-center gap-3 mb-1">
+              <span className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
+                <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </span>
+              <AlertDialogTitle className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
+                Quick Start Templates
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-neutral-500 ml-11">
               Choose a pre-built template to get started quickly
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="grid grid-cols-3 gap-3 my-4 max-h-[500px] overflow-y-auto pr-2">
-            {SCHEMA_TEMPLATES.map((template) => (
-              <button
-                key={template.name}
-                onClick={() => {
-                  loadSchemaTemplate(template.name);
-                  setShowTemplateModal(false);
-                }}
-                className="text-left p-4 rounded-lg border-2 border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all group"
-              >
-                <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {template.name}
-                </div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
-                  {template.description}
-                </div>
-                <div className="text-xs text-neutral-400 dark:text-neutral-500 mt-2 font-mono">
-                  {template.fields.length} fields
-                </div>
-              </button>
-            ))}
           </div>
 
-          <div className="flex justify-end">
-            <AlertDialogCancel className="mt-0">Cancel</AlertDialogCancel>
+          {/* Template Grid */}
+          <div className="grid grid-cols-3 gap-3 p-6 max-h-[460px] overflow-y-auto">
+            {SCHEMA_TEMPLATES.map((template) => {
+              const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-4 w-4" /> };
+              return (
+                <button
+                  key={template.name}
+                  onClick={() => {
+                    loadSchemaTemplate(template.name);
+                    setShowTemplateModal(false);
+                  }}
+                  className="group text-left p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-purple-400 dark:hover:border-purple-600 hover:shadow-sm transition-all duration-150"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3 text-neutral-500 dark:text-neutral-400 group-hover:bg-purple-100 dark:group-hover:bg-purple-950/40 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                    {cfg.icon}
+                  </div>
+                  <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 mb-1">
+                    {template.name}
+                  </div>
+                  <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                    {template.description}
+                  </div>
+                  <div className="mt-3 text-[11px] text-neutral-400 dark:text-neutral-500">
+                    {template.fields.length} fields &middot; {template.fields.filter(f => f.required).length} required
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end bg-neutral-50 dark:bg-neutral-950/40">
+            <AlertDialogCancel className="mt-0 rounded-lg border border-neutral-200 dark:border-neutral-700 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+              Cancel
+            </AlertDialogCancel>
           </div>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Field Edit Modal */}
-      {expandedFieldId && (() => {
-        const editField = fields.find(f => f.id === expandedFieldId);
-        if (!editField) return null;
-        
-        return (
-          <AlertDialog open={true} onOpenChange={() => setExpandedFieldId(null)}>
-            <AlertDialogContent className="max-w-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Edit Field: {editField.name}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Modify field properties and validation rules
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              
-              <div className="space-y-4 my-4">
-                {/* Basic Info Section */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Basic Information</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Field Name</label>
-                      <input
-                        type="text"
-                        value={editField.name}
-                        onChange={(e) => updateField(editField.id, { name: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Type</label>
-                      <select
-                        value={editField.type}
-                        onChange={(e) => updateField(editField.id, { type: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                      >
-                        <option value="string">String</option>
-                        <option value="number">Number</option>
-                        <option value="integer">Integer</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="array">Array</option>
-                        <option value="object">Object</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Description</label>
-                      <input
-                        type="text"
-                        value={editField.description || ''}
-                        onChange={(e) => updateField(editField.id, { description: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                        placeholder="Optional description"
-                      />
-                    </div>
-                  </div>
-                </div>
+      {expandedFieldId &&
+        (() => {
+          const editField = fields.find((f) => f.id === expandedFieldId);
+          if (!editField) return null;
 
-                {/* Validation Rules Section */}
-                {editField.type === 'string' && (
-                  <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Validation Rules</h4>
+          return (
+            <AlertDialog open={true} onOpenChange={() => setExpandedFieldId(null)}>
+              <AlertDialogContent className="max-w-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Edit Field: {editField.name}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Modify field properties and validation rules
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-4 my-4">
+                  {/* Basic Info Section */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                      Basic Information
+                    </h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Min Length</label>
-                        <input
-                          type="number"
-                          value={editField.minLength || ''}
-                          onChange={(e) => updateField(editField.id, { minLength: e.target.value ? Number(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                          placeholder="Minimum"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Max Length</label>
-                        <input
-                          type="number"
-                          value={editField.maxLength || ''}
-                          onChange={(e) => updateField(editField.id, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                          placeholder="Maximum"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Pattern (Regex)</label>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                          Field Name
+                        </label>
                         <input
                           type="text"
-                          value={editField.pattern || ''}
-                          onChange={(e) => updateField(editField.id, { pattern: e.target.value || undefined })}
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
-                          placeholder="e.g., ^[A-Z][a-z]+$"
+                          value={editField.name}
+                          onChange={(e) => updateField(editField.id, { name: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                         />
                       </div>
-                      <div className="col-span-2">
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Format</label>
+                      <div>
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                          Type
+                        </label>
                         <select
-                          value={editField.format || ''}
-                          onChange={(e) => updateField(editField.id, { format: e.target.value || undefined })}
+                          value={editField.type}
+                          onChange={(e) => updateField(editField.id, { type: e.target.value })}
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                         >
-                          <option value="">None</option>
-                          <option value="email">Email</option>
-                          <option value="uri">URL</option>
-                          <option value="date">Date</option>
-                          <option value="time">Time</option>
-                          <option value="date-time">DateTime</option>
+                          <option value="string">String</option>
+                          <option value="number">Number</option>
+                          <option value="integer">Integer</option>
+                          <option value="boolean">Boolean</option>
+                          <option value="array">Array</option>
+                          <option value="object">Object</option>
                         </select>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {(editField.type === 'number' || editField.type === 'integer') && (
-                  <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Validation Rules</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Minimum</label>
+                      <div className="col-span-2">
+                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                          Description
+                        </label>
                         <input
-                          type="number"
-                          value={editField.minimum !== undefined ? editField.minimum : ''}
-                          onChange={(e) => updateField(editField.id, { minimum: e.target.value ? Number(e.target.value) : undefined })}
+                          type="text"
+                          value={editField.description || ''}
+                          onChange={(e) =>
+                            updateField(editField.id, { description: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                          placeholder="Min value"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">Maximum</label>
-                        <input
-                          type="number"
-                          value={editField.maximum !== undefined ? editField.maximum : ''}
-                          onChange={(e) => updateField(editField.id, { maximum: e.target.value ? Number(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                          placeholder="Max value"
+                          placeholder="Optional description"
                         />
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="flex justify-end gap-2">
-                <AlertDialogCancel className="mt-0" onClick={() => setExpandedFieldId(null)}>Done</AlertDialogCancel>
-              </div>
-            </AlertDialogContent>
-          </AlertDialog>
-        );
-      })()}
+                  {/* Validation Rules Section */}
+                  {editField.type === 'string' && (
+                    <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                      <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                        Validation Rules
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Min Length
+                          </label>
+                          <input
+                            type="number"
+                            value={editField.minLength || ''}
+                            onChange={(e) =>
+                              updateField(editField.id, {
+                                minLength: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                            placeholder="Minimum"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Max Length
+                          </label>
+                          <input
+                            type="number"
+                            value={editField.maxLength || ''}
+                            onChange={(e) =>
+                              updateField(editField.id, {
+                                maxLength: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                            placeholder="Maximum"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Pattern (Regex)
+                          </label>
+                          <input
+                            type="text"
+                            value={editField.pattern || ''}
+                            onChange={(e) =>
+                              updateField(editField.id, { pattern: e.target.value || undefined })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
+                            placeholder="e.g., ^[A-Z][a-z]+$"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Format
+                          </label>
+                          <select
+                            value={editField.format || ''}
+                            onChange={(e) =>
+                              updateField(editField.id, { format: e.target.value || undefined })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          >
+                            <option value="">None</option>
+                            <option value="email">Email</option>
+                            <option value="uri">URL</option>
+                            <option value="date">Date</option>
+                            <option value="time">Time</option>
+                            <option value="date-time">DateTime</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(editField.type === 'number' || editField.type === 'integer') && (
+                    <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                      <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                        Validation Rules
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Minimum
+                          </label>
+                          <input
+                            type="number"
+                            value={editField.minimum !== undefined ? editField.minimum : ''}
+                            onChange={(e) =>
+                              updateField(editField.id, {
+                                minimum: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                            placeholder="Min value"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Maximum
+                          </label>
+                          <input
+                            type="number"
+                            value={editField.maximum !== undefined ? editField.maximum : ''}
+                            onChange={(e) =>
+                              updateField(editField.id, {
+                                maximum: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                            placeholder="Max value"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <AlertDialogCancel className="mt-0" onClick={() => setExpandedFieldId(null)}>
+                    Done
+                  </AlertDialogCancel>
+                </div>
+              </AlertDialogContent>
+            </AlertDialog>
+          );
+        })()}
     </div>
   );
 };
