@@ -184,7 +184,9 @@ const AUTO_COMPLETE_MAP: Record<string, string> = {
 function generateFieldComponent(field: FieldModel, theme: any): string {
   const { id, key, type, label, required, ui } = field;
   // date/number inputs don't benefit from placeholder — omit it to keep markup clean.
-  const placeholder = (type === 'date' || type === 'number') ? '' : (ui?.placeholder || '');
+  const explicitPlaceholder = ui?.placeholder;
+  const computedPlaceholder = explicitPlaceholder ?? `Enter ${label.toLowerCase()}...`;
+  const placeholder = type === 'date' ? '' : computedPlaceholder;
   const helpText = ui?.helpText;
   const overrides = ui?.styleOverrides as Record<string, string> | undefined;
   // Look up autoComplete token for this field key (WCAG 1.3.5).
