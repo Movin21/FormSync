@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, Sparkles, Code2, FileCode, Server, 
-  Database, TestTube, Check, Play, Shield, Layers, 
+  Database, TestTube, Check, Play, Shield, 
   FileJson, Workflow, Github, BookOpen, 
   Layout, Wand2, Package, Terminal, CheckCircle2, AlertCircle
 } from 'lucide-react';
@@ -407,40 +407,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Trust / Tech Stack Section */}
-      <section className="relative z-10 px-4 py-16 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-            <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-8">
-              BUILT WITH MODERN TECHNOLOGIES
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-              {techStack.map((tech, index) => (
-                <motion.div
-                  key={tech.name}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.1, y: -5 }}
-                  className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                >
-                  {tech.icon}
-                  <span className="font-medium">{tech.name}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Footer */}
+      {/* Footer */
       <footer className="relative z-10 px-4 py-10 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-6">
@@ -485,7 +452,6 @@ export const LandingPage: React.FC = () => {
           {/* Bottom Bar */}
           <div className="pt-6 border-t border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-neutral-500 dark:text-neutral-500">
             <p>© 2026 FormSync. All rights reserved.</p>
-            <p>Built with React, TypeScript, and AI</p>
           </div>
         </div>
       </footer>
@@ -919,15 +885,6 @@ const systemFeatures = [
       </div>
     ),
   },
-];
-
-// Tech Stack Data
-const techStack = [
-  { name: 'React', icon: <Code2 className="h-5 w-5" /> },
-  { name: 'TypeScript', icon: <FileCode className="h-5 w-5" /> },
-  { name: 'OpenAI GPT-4', icon: <Sparkles className="h-5 w-5" /> },
-  { name: 'NestJS', icon: <Server className="h-5 w-5" /> },
-  { name: 'Tailwind CSS', icon: <Layers className="h-5 w-5" /> },
 ];
 
 // Steps Data
