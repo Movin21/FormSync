@@ -1,20 +1,37 @@
 /**
  * Landing Page - FormSync Pipeline System Showcase
- * 
+ *
  * Professional SaaS-level landing page with modern design
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, Sparkles, Code2, FileCode, Server, 
-  Database, TestTube, Check, Play, Shield, 
-  FileJson, Workflow, Github, BookOpen, 
-  Layout, Wand2, Package, Terminal, CheckCircle2, AlertCircle
+import {
+  ArrowRight,
+  Sparkles,
+  Code2,
+  FileCode,
+  Server,
+  Database,
+  TestTube,
+  Check,
+  Play,
+  Shield,
+  FileJson,
+  Workflow,
+  Github,
+  BookOpen,
+  Layout,
+  Wand2,
+  Package,
+  Terminal,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
+import { Footer } from '../components/layout/Footer';
 
 export const LandingPage: React.FC = () => {
   return (
@@ -23,7 +40,7 @@ export const LandingPage: React.FC = () => {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Top gradient mesh */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
-        
+
         {/* Subtle animated blobs */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
         <div className="absolute top-20 right-1/4 w-96 h-96 bg-blue-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -41,7 +58,7 @@ export const LandingPage: React.FC = () => {
               transition={{ duration: 0.6 }}
             >
               {/* Badge */}
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1 }}
@@ -57,15 +74,15 @@ export const LandingPage: React.FC = () => {
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 tracking-tight">
                 Transform Schemas into
                 <br />
-                <motion.span 
+                <motion.span
                   className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent inline-block"
-                  animate={{ 
+                  animate={{
                     backgroundPosition: ['0%', '100%', '0%'],
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 8,
                     repeat: Infinity,
-                    ease: "linear"
+                    ease: 'linear',
                   }}
                   style={{ backgroundSize: '200% auto' }}
                 >
@@ -74,17 +91,14 @@ export const LandingPage: React.FC = () => {
               </h1>
 
               <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-300 mb-8 leading-relaxed max-w-xl">
-                Validate, enhance, and generate full-stack applications from JSON Schema. 
-                Create forms, APIs, DTOs, and tests—all powered by AI.
+                Validate, enhance, and generate full-stack applications from JSON Schema. Create
+                forms, APIs, DTOs, and tests—all powered by AI.
               </p>
 
               {/* CTA Buttons with enhanced animations */}
               <div className="flex flex-col sm:flex-row items-start gap-4 mb-12">
                 <Link to="/editor">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       size="lg"
                       className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-2xl text-white px-8 py-6 text-base font-semibold rounded-lg transition-all overflow-hidden group"
@@ -99,10 +113,7 @@ export const LandingPage: React.FC = () => {
                   </motion.div>
                 </Link>
                 <a href="https://github.com/formsync" target="_blank" rel="noopener noreferrer">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       size="lg"
                       variant="outline"
@@ -116,7 +127,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               {/* Trust Indicators with animation */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -125,7 +136,7 @@ export const LandingPage: React.FC = () => {
                 {[
                   { icon: Check, text: 'Multi-format support' },
                   { icon: Check, text: 'AI-enhanced validation' },
-                  { icon: Check, text: 'Production-ready' }
+                  { icon: Check, text: 'Production-ready' },
                 ].map((item, i) => (
                   <motion.div
                     key={item.text}
@@ -150,31 +161,33 @@ export const LandingPage: React.FC = () => {
             >
               {/* Floating status badges */}
               <motion.div
-                animate={{ 
+                animate={{
                   y: [0, -8, 0],
                 }}
-                transition={{ 
+                transition={{
                   duration: 4,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: 'easeInOut',
                 }}
                 className="absolute -top-4 -left-4 z-20"
               >
                 <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-800 px-3 py-2 flex items-center gap-2 backdrop-blur-sm">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">Validated</span>
+                  <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                    Validated
+                  </span>
                 </div>
               </motion.div>
 
               <motion.div
-                animate={{ 
+                animate={{
                   y: [0, -10, 0],
                 }}
-                transition={{ 
+                transition={{
                   duration: 5,
                   repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5
+                  ease: 'easeInOut',
+                  delay: 0.5,
                 }}
                 className="absolute -bottom-4 -right-4 z-20"
               >
@@ -186,23 +199,23 @@ export const LandingPage: React.FC = () => {
 
               <div className="relative">
                 {/* Glowing effect behind - animated */}
-                <motion.div 
-                  animate={{ 
+                <motion.div
+                  animate={{
                     scale: [1, 1.05, 1],
-                    opacity: [0.2, 0.3, 0.2]
+                    opacity: [0.2, 0.3, 0.2],
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 3,
                     repeat: Infinity,
-                    ease: "easeInOut"
+                    ease: 'easeInOut',
                   }}
                   className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl blur-3xl"
                 ></motion.div>
-                
+
                 {/* Mock UI Preview with parallax */}
-                <motion.div 
+                <motion.div
                   whileHover={{ y: -5, scale: 1.02 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
                   className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden backdrop-blur-sm bg-opacity-90"
                 >
                   <SchemaEditorPreview />
@@ -224,7 +237,11 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-20"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              Complete <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Schema Automation</span> Platform
+              Complete{' '}
+              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Schema Automation
+              </span>{' '}
+              Platform
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
               From schema creation to production code generation—all in one powerful workflow
@@ -236,7 +253,6 @@ export const LandingPage: React.FC = () => {
           ))}
         </div>
       </section>
-
 
       {/* Feature Highlights Section */}
       <section className="relative z-10 px-4 py-20 md:py-24 bg-neutral-50 dark:bg-neutral-900/50">
@@ -275,7 +291,11 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              How <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">FormSync</span> Works
+              How{' '}
+              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                FormSync
+              </span>{' '}
+              Works
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300">
               Four simple steps from schema to production code
@@ -285,9 +305,11 @@ export const LandingPage: React.FC = () => {
           {/* Horizontal Process Flow */}
           <div className="relative">
             {/* Connecting Line */}
-            <div className="absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-200 via-indigo-300 to-blue-200 dark:from-purple-900 dark:via-indigo-800 dark:to-blue-900 hidden md:block" 
-                 style={{ left: '12.5%', right: '12.5%' }}></div>
-            
+            <div
+              className="absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-200 via-indigo-300 to-blue-200 dark:from-purple-900 dark:via-indigo-800 dark:to-blue-900 hidden md:block"
+              style={{ left: '12.5%', right: '12.5%' }}
+            ></div>
+
             <div className="grid md:grid-cols-4 gap-8 relative">
               {steps.map((step, index) => (
                 <ProcessStep key={step.title} step={step} index={index} />
@@ -308,7 +330,11 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              Complete <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Application</span> Generation
+              Complete{' '}
+              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Application
+              </span>{' '}
+              Generation
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
               From one validated schema to a complete, production-ready codebase
@@ -341,7 +367,7 @@ export const LandingPage: React.FC = () => {
                 transition={{
                   duration: 10,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: 'linear',
                 }}
                 className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-blue-500/10"
                 style={{ backgroundSize: '200% 200%' }}
@@ -355,13 +381,13 @@ export const LandingPage: React.FC = () => {
                 transition={{
                   duration: 3,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: 'easeInOut',
                 }}
                 className="absolute inset-0 border-2 border-purple-400/50 rounded-lg blur-sm"
               ></motion.div>
 
               <CardContent className="p-12 md:p-16 text-center relative z-10">
-                <motion.h2 
+                <motion.h2
                   initial={{ y: 10, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
                   viewport={{ once: true }}
@@ -369,7 +395,7 @@ export const LandingPage: React.FC = () => {
                 >
                   Ready to Build Faster?
                 </motion.h2>
-                <motion.p 
+                <motion.p
                   initial={{ y: 10, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
                   viewport={{ once: true }}
@@ -379,16 +405,13 @@ export const LandingPage: React.FC = () => {
                   Join developers automating their workflow with FormSync
                 </motion.p>
                 <Link to="/editor">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
                       size="lg"
                       className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-2xl text-white px-12 py-6 text-lg font-semibold rounded-lg transition-all group overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center">
-                        Start Creating 
+                        Start Creating
                         <motion.div
                           animate={{ x: [0, 5, 0] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
@@ -407,54 +430,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */
-      <footer className="relative z-10 px-4 py-10 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-6">
-            {/* Brand */}
-            <div className="md:col-span-2">
-              <Link to="/" className="flex items-center gap-3 mb-4 w-fit">
-                <img 
-                  src="/logo.png" 
-                  alt="FormSync Logo" 
-                  className="h-10 w-auto"
-                />
-              </Link>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-sm leading-relaxed">
-                AI-powered schema automation platform. Transform JSON schemas into production-ready applications.
-              </p>
-            </div>
-
-            {/* Product Links */}
-            <div>
-              <h3 className="font-semibold mb-3 text-sm">Product</h3>
-              <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <li><Link to="/editor" className="hover:text-purple-600 transition-colors">Editor</Link></li>
-                <li><Link to="/templates" className="hover:text-purple-600 transition-colors">Templates</Link></li>
-                <li><a href="#features" className="hover:text-purple-600 transition-colors">Features</a></li>
-              </ul>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <h3 className="font-semibold mb-3 text-sm">Resources</h3>
-              <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <li><a href="https://github.com/formsync" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition-colors flex items-center gap-2">
-                  <Github className="h-4 w-4" /> GitHub
-                </a></li>
-                <li><a href="#docs" className="hover:text-purple-600 transition-colors flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" /> Documentation
-                </a></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-6 border-t border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-neutral-500 dark:text-neutral-500">
-            <p>© 2026 FormSync. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
@@ -476,58 +452,168 @@ const SchemaEditorPreview = () => {
       {/* AI Enhancement Label */}
       <div className="mb-3 flex items-center gap-2">
         <Sparkles className="h-3 w-3 text-purple-600" />
-        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">AI Enhanced Schema</span>
+        <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+          AI Enhanced Schema
+        </span>
       </div>
 
       {/* Mock Code Content - Real AI Enhanced Schema */}
       <div className="font-mono text-xs space-y-1 text-neutral-700 dark:text-neutral-300 max-h-64 overflow-y-auto">
-        <div><span className="text-purple-600">{"{"}</span></div>
-        <div className="pl-4"><span className="text-blue-600">"$schema"</span>: <span className="text-green-600">"http://json-schema.org/draft-07/schema#"</span>,</div>
-        <div className="pl-4"><span className="text-blue-600">"title"</span>: <span className="text-green-600">"User Registration"</span>,</div>
-        <div className="pl-4"><span className="text-blue-600">"description"</span>: <span className="text-green-600">"Schema for user registration with comprehensive validation"</span>,</div>
-        <div className="pl-4"><span className="text-blue-600">"type"</span>: <span className="text-green-600">"object"</span>,</div>
-        <div className="pl-4"><span className="text-blue-600">"required"</span>: <span className="text-yellow-600">["username", "email", "password"]</span>,</div>
-        <div className="pl-4"><span className="text-blue-600">"properties"</span>: <span className="text-purple-600">{"{"}</span></div>
-        
-        <div className="pl-8"><span className="text-blue-600">"username"</span>: <span className="text-purple-600">{"{"}</span></div>
-        <div className="pl-12"><span className="text-blue-600">"type"</span>: <span className="text-green-600">"string"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"description"</span>: <span className="text-green-600">"Unique username for the account"</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"minLength"</span>: <span className="text-orange-600">3</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"maxLength"</span>: <span className="text-orange-600">20</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"pattern"</span>: <span className="text-green-600">"^[a-zA-Z0-9_-]+$"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"errorMessage"</span>: <span className="text-green-600">"Username must be 3-20 characters and contain only letters, numbers, underscores, or hyphens"</span></div>
-        <div className="pl-8"><span className="text-purple-600">{"},"}</span></div>
-        
-        <div className="pl-8"><span className="text-blue-600">"email"</span>: <span className="text-purple-600">{"{"}</span></div>
-        <div className="pl-12"><span className="text-blue-600">"type"</span>: <span className="text-green-600">"string"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"description"</span>: <span className="text-green-600">"User's email address"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"format"</span>: <span className="text-green-600">"email"</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"pattern"</span>: <span className="text-green-600">"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{`{2,}`}$"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"errorMessage"</span>: <span className="text-green-600">"Please provide a valid email address"</span></div>
-        <div className="pl-8"><span className="text-purple-600">{"},"}</span></div>
-        
-        <div className="pl-8"><span className="text-blue-600">"password"</span>: <span className="text-purple-600">{"{"}</span></div>
-        <div className="pl-12"><span className="text-blue-600">"type"</span>: <span className="text-green-600">"string"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"description"</span>: <span className="text-green-600">"Secure password meeting complexity requirements"</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"minLength"</span>: <span className="text-orange-600">8</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"maxLength"</span>: <span className="text-orange-600">128</span>,</div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded"><span className="text-blue-600">"pattern"</span>: <span className="text-green-600">"^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]"</span>,</div>
-        <div className="pl-12"><span className="text-blue-600">"errorMessage"</span>: <span className="text-green-600">"Password must contain uppercase, lowercase, number, and special character"</span></div>
-        <div className="pl-8"><span className="text-purple-600">{"}"}</span></div>
-        
-        <div className="pl-4"><span className="text-purple-600">{"}"}</span></div>
-        <div><span className="text-purple-600">{"}"}</span></div>
+        <div>
+          <span className="text-purple-600">{'{'}</span>
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"$schema"</span>:{' '}
+          <span className="text-green-600">"http://json-schema.org/draft-07/schema#"</span>,
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"title"</span>:{' '}
+          <span className="text-green-600">"User Registration"</span>,
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-green-600">
+            "Schema for user registration with comprehensive validation"
+          </span>
+          ,
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-green-600">"object"</span>,
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"required"</span>:{' '}
+          <span className="text-yellow-600">["username", "email", "password"]</span>,
+        </div>
+        <div className="pl-4">
+          <span className="text-blue-600">"properties"</span>:{' '}
+          <span className="text-purple-600">{'{'}</span>
+        </div>
+
+        <div className="pl-8">
+          <span className="text-blue-600">"username"</span>:{' '}
+          <span className="text-purple-600">{'{'}</span>
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-green-600">"string"</span>,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-green-600">"Unique username for the account"</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"minLength"</span>:{' '}
+          <span className="text-orange-600">3</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"maxLength"</span>:{' '}
+          <span className="text-orange-600">20</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-green-600">"^[a-zA-Z0-9_-]+$"</span>,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"errorMessage"</span>:{' '}
+          <span className="text-green-600">
+            "Username must be 3-20 characters and contain only letters, numbers, underscores, or
+            hyphens"
+          </span>
+        </div>
+        <div className="pl-8">
+          <span className="text-purple-600">{'},'}</span>
+        </div>
+
+        <div className="pl-8">
+          <span className="text-blue-600">"email"</span>:{' '}
+          <span className="text-purple-600">{'{'}</span>
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-green-600">"string"</span>,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-green-600">"User's email address"</span>,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"format"</span>:{' '}
+          <span className="text-green-600">"email"</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-green-600">
+            "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{`{2,}`}$"
+          </span>
+          ,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"errorMessage"</span>:{' '}
+          <span className="text-green-600">"Please provide a valid email address"</span>
+        </div>
+        <div className="pl-8">
+          <span className="text-purple-600">{'},'}</span>
+        </div>
+
+        <div className="pl-8">
+          <span className="text-blue-600">"password"</span>:{' '}
+          <span className="text-purple-600">{'{'}</span>
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-green-600">"string"</span>,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-green-600">"Secure password meeting complexity requirements"</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"minLength"</span>:{' '}
+          <span className="text-orange-600">8</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"maxLength"</span>:{' '}
+          <span className="text-orange-600">128</span>,
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-green-600">
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]"
+          </span>
+          ,
+        </div>
+        <div className="pl-12">
+          <span className="text-blue-600">"errorMessage"</span>:{' '}
+          <span className="text-green-600">
+            "Password must contain uppercase, lowercase, number, and special character"
+          </span>
+        </div>
+        <div className="pl-8">
+          <span className="text-purple-600">{'}'}</span>
+        </div>
+
+        <div className="pl-4">
+          <span className="text-purple-600">{'}'}</span>
+        </div>
+        <div>
+          <span className="text-purple-600">{'}'}</span>
+        </div>
       </div>
 
       {/* AI Enhancement Highlights */}
       <div className="mt-4 flex flex-wrap gap-2">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
           <Sparkles className="h-3 w-3 text-purple-600" />
-          <span className="text-xs font-medium text-purple-700 dark:text-purple-400">+6 Validations</span>
+          <span className="text-xs font-medium text-purple-700 dark:text-purple-400">
+            +6 Validations
+          </span>
         </div>
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
           <Check className="h-3 w-3 text-green-600" />
-          <span className="text-xs font-medium text-green-700 dark:text-green-400">Error Messages</span>
+          <span className="text-xs font-medium text-green-700 dark:text-green-400">
+            Error Messages
+          </span>
         </div>
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
           <FileCode className="h-3 w-3 text-blue-600" />
@@ -545,16 +631,16 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5 }}
-    whileHover={{ y: -8, transition: { duration: 0.2, ease: "easeOut" } }}
+    whileHover={{ y: -8, transition: { duration: 0.2, ease: 'easeOut' } }}
   >
     <Card className="h-full border border-neutral-200 dark:border-neutral-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm relative overflow-hidden group">
       {/* Animated border glow */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      
+
       <CardContent className="p-6 relative z-10">
-        <motion.div 
+        <motion.div
           whileHover={{ rotate: 5, scale: 1.05 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
           className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4"
         >
           {feature.icon}
@@ -571,12 +657,12 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => (
 // System Feature Block Component (Alternating Layout)
 const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number }) => {
   const isEven = index % 2 === 0;
-  
+
   return (
     <motion.div
       initial={{ y: 40, opacity: 0 }}
       whileInView={{ y: 0, opacity: 1 }}
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{ once: true, margin: '-100px' }}
       transition={{ duration: 0.6, delay: 0.2 }}
       className={`grid md:grid-cols-2 gap-12 items-center mb-32 last:mb-0 ${!isEven ? 'md:grid-flow-dense' : ''}`}
     >
@@ -590,7 +676,9 @@ const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number })
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/30 mb-4">
             {feature.icon}
-            <span className="text-xs font-medium text-purple-700 dark:text-purple-300">{feature.badge}</span>
+            <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+              {feature.badge}
+            </span>
           </div>
           <h3 className="text-3xl md:text-4xl font-bold mb-4">{feature.title}</h3>
           <p className="text-lg text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed">
@@ -621,12 +709,12 @@ const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number })
           whileInView={{ x: 0, opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          whileHover={{ scale: 1.02, y: -5, transition: { duration: 0.2, ease: "easeOut" } }}
+          whileHover={{ scale: 1.02, y: -5, transition: { duration: 0.2, ease: 'easeOut' } }}
           className="relative"
         >
           {/* Glow effect */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl blur-2xl opacity-20"></div>
-          
+
           <div className="relative bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-8 shadow-2xl">
             {feature.visual}
           </div>
@@ -643,34 +731,34 @@ const ProcessStep = ({ step, index }: { step: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.15, duration: 0.5 }}
-    whileHover={{ y: -5, scale: 1.05, transition: { duration: 0.2, ease: "easeOut" } }}
+    whileHover={{ y: -5, scale: 1.05, transition: { duration: 0.2, ease: 'easeOut' } }}
     className="flex flex-col items-center text-center relative group cursor-pointer"
   >
     {/* Step Number Circle with animated glow */}
-    <motion.div 
-      whileHover={{ 
+    <motion.div
+      whileHover={{
         boxShadow: '0 0 30px rgba(147, 51, 234, 0.5)',
-        scale: 1.1
+        scale: 1.1,
       }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
       className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl mb-6 shadow-lg relative z-10 transition-all duration-300"
     >
       <motion.div
         animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
         className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-indigo-400 opacity-0 group-hover:opacity-50 blur-xl"
       ></motion.div>
       <span className="relative z-10">{index + 1}</span>
     </motion.div>
-    
+
     {/* Content */}
     <div className="relative">
       <div className="absolute -inset-4 bg-purple-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl"></div>
       <div className="relative">
-        <h3 className="text-xl font-bold mb-2 group-hover:text-purple-600 transition-colors">{step.title}</h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          {step.description}
-        </p>
+        <h3 className="text-xl font-bold mb-2 group-hover:text-purple-600 transition-colors">
+          {step.title}
+        </h3>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{step.description}</p>
       </div>
     </div>
   </motion.div>
@@ -683,7 +771,7 @@ const OutputCard = ({ output, index }: { output: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5 }}
-    whileHover={{ y: -8, transition: { duration: 0.2, ease: "easeOut" } }}
+    whileHover={{ y: -8, transition: { duration: 0.2, ease: 'easeOut' } }}
   >
     <Card className="h-full border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-shadow duration-200 bg-white dark:bg-neutral-900">
       <CardContent className="p-6">
@@ -691,12 +779,13 @@ const OutputCard = ({ output, index }: { output: any; index: number }) => (
           {output.icon}
         </div>
         <h3 className="text-lg font-bold mb-2">{output.title}</h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">
-          {output.description}
-        </p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">{output.description}</p>
         <ul className="space-y-2">
           {output.features.map((feature: string) => (
-            <li key={feature} className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+            <li
+              key={feature}
+              className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400"
+            >
               <Check className="h-3 w-3 text-green-600 flex-shrink-0" />
               {feature}
             </li>
@@ -712,22 +801,26 @@ const features = [
   {
     icon: <FileJson className="h-6 w-6" />,
     title: 'Multi-Format Support',
-    description: 'Import and validate JSON, YAML, or XML schemas. Convert between formats seamlessly.',
+    description:
+      'Import and validate JSON, YAML, or XML schemas. Convert between formats seamlessly.',
   },
   {
     icon: <Sparkles className="h-6 w-6" />,
     title: 'AI Enhancement',
-    description: 'GPT-4 powered suggestions for validation rules, accessibility, and structure improvements.',
+    description:
+      'GPT-4 powered suggestions for validation rules, accessibility, and structure improvements.',
   },
   {
     icon: <Workflow className="h-6 w-6" />,
     title: 'Dual Workflow Modes',
-    description: 'Choose manual step-by-step control or automated one-click pipeline for maximum flexibility.',
+    description:
+      'Choose manual step-by-step control or automated one-click pipeline for maximum flexibility.',
   },
   {
     icon: <Shield className="h-6 w-6" />,
     title: 'Quality Assurance',
-    description: 'Automated validation with quality scoring and detailed suggestions for production readiness.',
+    description:
+      'Automated validation with quality scoring and detailed suggestions for production readiness.',
   },
 ];
 
@@ -736,13 +829,14 @@ const systemFeatures = [
   {
     badge: 'Schema Creation',
     title: 'Build Schemas Visually or with Code',
-    description: 'Create JSON schemas using our drag-and-drop template builder or write directly in the technical editor with real-time validation.',
+    description:
+      'Create JSON schemas using our drag-and-drop template builder or write directly in the technical editor with real-time validation.',
     icon: <Layout className="h-4 w-4 text-purple-600" />,
     points: [
       'Visual template builder with pre-built components',
       'Monaco-powered code editor with IntelliSense',
       'Real-time syntax validation and error detection',
-      'Import from JSON, YAML, or XML formats'
+      'Import from JSON, YAML, or XML formats',
     ],
     visual: (
       <div className="space-y-4">
@@ -763,9 +857,13 @@ const systemFeatures = [
         <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-sm font-medium text-green-700 dark:text-green-400">Schema Ready</span>
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+              Schema Ready
+            </span>
           </div>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400">Valid JSON Schema Draft-7</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            Valid JSON Schema Draft-7
+          </p>
         </div>
       </div>
     ),
@@ -773,28 +871,33 @@ const systemFeatures = [
   {
     badge: 'Validation Engine',
     title: 'Intelligent Syntax Validation & Quick Fix',
-    description: 'Advanced validation engine detects errors in real-time and offers AI-powered auto-fix suggestions to resolve issues instantly.',
+    description:
+      'Advanced validation engine detects errors in real-time and offers AI-powered auto-fix suggestions to resolve issues instantly.',
     icon: <Shield className="h-4 w-4 text-purple-600" />,
     points: [
       'Multi-format syntax validation (JSON, YAML, XML)',
       'AI-powered quick fix for common errors',
       'Detailed error messages with line numbers',
-      'Format mismatch detection and suggestions'
+      'Format mismatch detection and suggestions',
     ],
     visual: (
       <div className="space-y-3">
         <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-sm font-medium text-red-700 dark:text-red-400">Syntax Error Detected</span>
+            <span className="text-sm font-medium text-red-700 dark:text-red-400">
+              Syntax Error Detected
+            </span>
           </div>
-          <p className="text-xs font-mono text-neutral-600 dark:text-neutral-400">Line 12: Missing closing brace</p>
+          <p className="text-xs font-mono text-neutral-600 dark:text-neutral-400">
+            Line 12: Missing closing brace
+          </p>
         </div>
-        <motion.div
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+          <Button
+            size="sm"
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white"
+          >
             <Wand2 className="h-4 w-4 mr-2" />
             AI Quick Fix
           </Button>
@@ -802,7 +905,9 @@ const systemFeatures = [
         <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-sm font-medium text-green-700 dark:text-green-400">Fixed Successfully</span>
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+              Fixed Successfully
+            </span>
           </div>
         </div>
       </div>
@@ -811,22 +916,27 @@ const systemFeatures = [
   {
     badge: 'AI Enhancement',
     title: 'GPT-4 Powered Schema Enhancement',
-    description: 'Leverage advanced AI to automatically improve your schema with validation rules, accessibility features, and structural optimizations.',
+    description:
+      'Leverage advanced AI to automatically improve your schema with validation rules, accessibility features, and structural optimizations.',
     icon: <Sparkles className="h-4 w-4 text-purple-600" />,
     points: [
       'AI-generated validation rules and constraints',
       'Accessibility improvements (titles, descriptions)',
       'Structure optimization suggestions',
-      'Quality scoring with detailed breakdown'
+      'Quality scoring with detailed breakdown',
     ],
     visual: (
       <div className="space-y-3">
         <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
           <Sparkles className="h-5 w-5 text-purple-600 animate-pulse" />
-          <span className="text-sm font-medium text-purple-700 dark:text-purple-400">AI Enhancing...</span>
+          <span className="text-sm font-medium text-purple-700 dark:text-purple-400">
+            AI Enhancing...
+          </span>
         </div>
         <div className="space-y-2">
-          <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-2">Quality Score</div>
+          <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-2">
+            Quality Score
+          </div>
           <div className="flex gap-2">
             {[85, 92, 78, 95, 88].map((score, i) => (
               <motion.div
@@ -849,13 +959,14 @@ const systemFeatures = [
   {
     badge: 'Code Generation',
     title: 'Full-Stack Code Generation',
-    description: 'Generate production-ready frontend forms, backend APIs, DTOs, and test cases from your validated schema—all in one click.',
+    description:
+      'Generate production-ready frontend forms, backend APIs, DTOs, and test cases from your validated schema—all in one click.',
     icon: <Terminal className="h-4 w-4 text-purple-600" />,
     points: [
       'React form components with validation',
       'Express/NestJS backend controllers',
       'TypeScript DTOs with decorators',
-      'Complete test suites (unit + integration)'
+      'Complete test suites (unit + integration)',
     ],
     visual: (
       <div className="space-y-3">
@@ -878,7 +989,10 @@ const systemFeatures = [
             </motion.div>
           ))}
         </div>
-        <Button size="sm" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+        <Button
+          size="sm"
+          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white"
+        >
           <Package className="h-4 w-4 mr-2" />
           Download All Code
         </Button>
@@ -966,4 +1080,3 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
