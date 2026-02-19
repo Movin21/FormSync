@@ -240,6 +240,13 @@ body {
   transition: all 0.2s ease;
 }
 
+input[type="checkbox"].field-input {
+  width: auto;
+  margin-right: 0.5rem;
+  padding: 0;
+  cursor: pointer;
+}
+
 /* :focus-visible targets keyboard nav only — mouse users won't see the ring.
    We keep the outline visible for High Contrast / forced-colors mode (WCAG 2.4.11). */
 .field-input:focus {
