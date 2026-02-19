@@ -1,62 +1,198 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ChevronRight, ChevronDown, Copy, Check, Info, AlertTriangle, BookOpen } from 'lucide-react';
+
+interface TocItem {
+  id: string;
+  title: string;
+  level: number;
+}
 
 export const Documentation: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['getting-started', 'using-formsync', 'ai-features', 'validation', 'export', 'components', 'help']));
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Auto-detect active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = document.querySelectorAll('section[id]');
+      let currentSection = 'overview';
+      
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= 100 && rect.bottom >= 100) {
+          currentSection = section.id;
+        }
+      });
+      
+      setActiveSection(currentSection);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Generate TOC from headings
+  useEffect(() => {
+    const headings = document.querySelectorAll('main h2, main h3');
+    const items: TocItem[] = [];
+    
+    headings.forEach((heading) => {
+      if (heading.id) {
+        items.push({
+          id: heading.id,
+          title: heading.textContent || '',
+          level: heading.tagName === 'H2' ? 2 : 3
+        });
+      }
+    });
+    
+    setTocItems(items);
+  }, []);
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const copyCode = async (code: string) => {
+    await navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Fixed Sidebar Navigation */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto fixed h-screen left-0 top-0">
+    <div className="flex min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-purple-950/10">
+      {/* Left Sidebar Navigation */}
+      <motion.aside 
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        className="w-72 border-r border-neutral-200 dark:border-neutral-800 sticky top-0 h-screen overflow-y-auto bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl"
+      >
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Documentation</h2>
-          
+          {/* Logo/Header */}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              FormSync Docs
+            </h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Complete documentation reference</p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search docs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-600 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* Navigation */}
           <nav className="space-y-6">
-            <NavSection title="Getting Started">
+            <NavSection 
+              title="GETTING STARTED" 
+              groupId="getting-started"
+              expanded={expandedGroups.has('getting-started')}
+              onToggle={() => toggleGroup('getting-started')}
+            >
               <NavItem id="overview" active={activeSection} onClick={scrollToSection}>Overview</NavItem>
               <NavItem id="architecture" active={activeSection} onClick={scrollToSection}>System Architecture</NavItem>
               <NavItem id="user-types" active={activeSection} onClick={scrollToSection}>Supported User Types</NavItem>
             </NavSection>
 
-            <NavSection title="Using FormSync">
+            <NavSection 
+              title="USING FORMSYNC" 
+              groupId="using-formsync"
+              expanded={expandedGroups.has('using-formsync')}
+              onToggle={() => toggleGroup('using-formsync')}
+            >
               <NavItem id="templates" active={activeSection} onClick={scrollToSection}>Creating Forms with Templates</NavItem>
               <NavItem id="schema-editor" active={activeSection} onClick={scrollToSection}>Schema Editor Overview</NavItem>
               <NavItem id="formats" active={activeSection} onClick={scrollToSection}>Multiple Input Formats</NavItem>
             </NavSection>
 
-            <NavSection title="AI-Assisted Features">
+            <NavSection 
+              title="AI-ASSISTED FEATURES" 
+              groupId="ai-features"
+              expanded={expandedGroups.has('ai-features')}
+              onToggle={() => toggleGroup('ai-features')}
+            >
               <NavItem id="ai-suggestions" active={activeSection} onClick={scrollToSection}>AI Schema Suggestions</NavItem>
-              <NavItem id="apply-undo" active={activeSection} onClick={scrollToSection}>Applying and Undoing Suggestions</NavItem>
+              <NavItem id="apply-undo" active={activeSection} onClick={scrollToSection}>Applying and Undoing</NavItem>
               <NavItem id="quality-scoring" active={activeSection} onClick={scrollToSection}>Schema Quality Scoring</NavItem>
             </NavSection>
 
-            <NavSection title="Validation & Optimization">
-              <NavItem id="validation" active={activeSection} onClick={scrollToSection}>Schema Validation Process</NavItem>
+            <NavSection 
+              title="VALIDATION & OPTIMIZATION" 
+              groupId="validation"
+              expanded={expandedGroups.has('validation')}
+              onToggle={() => toggleGroup('validation')}
+            >
+              <NavItem id="validation" active={activeSection} onClick={scrollToSection}>Validation Process</NavItem>
               <NavItem id="errors" active={activeSection} onClick={scrollToSection}>Error Detection & Handling</NavItem>
               <NavItem id="best-practices" active={activeSection} onClick={scrollToSection}>Best Practices</NavItem>
             </NavSection>
 
-            <NavSection title="Export & Integration">
+            <NavSection 
+              title="EXPORT & INTEGRATION" 
+              groupId="export"
+              expanded={expandedGroups.has('export')}
+              onToggle={() => toggleGroup('export')}
+            >
               <NavItem id="export" active={activeSection} onClick={scrollToSection}>Exporting Schemas</NavItem>
               <NavItem id="integration" active={activeSection} onClick={scrollToSection}>External Systems</NavItem>
             </NavSection>
 
-            <NavSection title="Components">
+            <NavSection 
+              title="COMPONENTS" 
+              groupId="components"
+              expanded={expandedGroups.has('components')}
+              onToggle={() => toggleGroup('components')}
+            >
               <NavItem id="comp-templates" active={activeSection} onClick={scrollToSection}>Template Builder</NavItem>
               <NavItem id="comp-editor" active={activeSection} onClick={scrollToSection}>Schema Editor</NavItem>
               <NavItem id="comp-ai" active={activeSection} onClick={scrollToSection}>AI Enhancement Engine</NavItem>
               <NavItem id="comp-quality" active={activeSection} onClick={scrollToSection}>Quality Evaluation</NavItem>
             </NavSection>
 
-            <NavSection title="Help & Reference">
+            <NavSection 
+              title="HELP & REFERENCE" 
+              groupId="help"
+              expanded={expandedGroups.has('help')}
+              onToggle={() => toggleGroup('help')}
+            >
               <NavItem id="faqs" active={activeSection} onClick={scrollToSection}>FAQs</NavItem>
               <NavItem id="common-errors" active={activeSection} onClick={scrollToSection}>Common Errors</NavItem>
               <NavItem id="limitations" active={activeSection} onClick={scrollToSection}>Limitations</NavItem>
-              <NavItem id="support" active={activeSection} onClick={scrollToSection}>Support</NavItem>
+              <NavItem id="support" active={activeSection} onClick=={scrollToSection}>Support</NavItem>
             </NavSection>
           </nav>
         </div>
