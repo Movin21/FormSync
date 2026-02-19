@@ -71,9 +71,11 @@ export class SchemaEnhancerService {
     // ✅ Check enhancement counter - limit to 2 enhancements
     const existingMetadata = schema['x-formsync-metadata'];
     const enhancementCount = existingMetadata?.enhancementCount || 0;
-    
+
     if (enhancementCount >= 2) {
-      throw new Error('Schema has already been enhanced 2 times. Maximum enhancement limit reached.');
+      throw new Error(
+        'Schema has already been enhanced 2 times. Maximum enhancement limit reached.'
+      );
     }
 
     // ✅ FIX #2: Remove enhancement marker before processing to allow re-enhancement
@@ -138,12 +140,12 @@ export class SchemaEnhancerService {
         messages: [
           {
             role: 'system',
-            content: `You are a helpful assistant that ${context === 'syntax-fix' ? 'fixes syntax errors in code' : 'helps with schema tasks'}.`
+            content: `You are a helpful assistant that ${context === 'syntax-fix' ? 'fixes syntax errors in code' : 'helps with schema tasks'}.`,
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.2, // Low temperature for deterministic fixes
       });
@@ -255,13 +257,13 @@ export class SchemaEnhancerService {
 
   /**
    * ✅ FIX #5: Validate AI suggestions before presenting to user
-   * 
+   *
    * Validates that AI suggestions are:
    * - Syntactically valid
    * - Logically consistent
    * - Don't violate JSON Schema rules
    * - Examples match patterns and constraints
-   * 
+   *
    * Filters out invalid suggestions to prevent broken schemas.
    */
   private validateSuggestions(suggestions: SchemaSuggestion[], schema: any): SchemaSuggestion[] {
@@ -269,7 +271,7 @@ export class SchemaEnhancerService {
 
     for (const suggestion of suggestions) {
       const validation = this.validateSingleSuggestion(suggestion);
-      
+
       if (validation.valid) {
         validated.push(suggestion);
       } else {
@@ -290,7 +292,10 @@ export class SchemaEnhancerService {
   /**
    * Validate a single suggestion
    */
-  private validateSingleSuggestion(suggestion: SchemaSuggestion): { valid: boolean; errors: string[] } {
+  private validateSingleSuggestion(suggestion: SchemaSuggestion): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
     const rule = suggestion.rule || {};
 
@@ -356,8 +361,7 @@ export class SchemaEnhancerService {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }
-

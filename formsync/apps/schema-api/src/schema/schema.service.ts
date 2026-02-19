@@ -172,18 +172,18 @@ export class SchemaService {
       for (const [key, prop] of Object.entries(obj.properties)) {
         const property = prop as any;
         const type = Array.isArray(property.type) ? property.type[0] : property.type;
-        
+
         // Only count user-input fields (string, number, integer, boolean)
         // NOT structural fields (object, array)
         const isUserInputField = ['string', 'number', 'integer', 'boolean'].includes(type);
-        
+
         if (isUserInputField) {
           total++;
           if (property['x-accessibility']?.label) {
             covered++;
           }
         }
-        
+
         // Recurse into nested objects
         if (property.type === 'object' && property.properties) {
           walk(property);
@@ -216,14 +216,15 @@ export class SchemaService {
       // Extract field names from DTO for pattern matching
       let fields: string[] = [];
       let schemaTitle: string | undefined;
-      
+
       if (dto.fields && dto.fields.length > 0) {
         fields = dto.fields;
       } else if (dto.schemaContent) {
         try {
-          const parsed = typeof dto.schemaContent === 'string' 
-            ? JSON.parse(dto.schemaContent) 
-            : dto.schemaContent;
+          const parsed =
+            typeof dto.schemaContent === 'string'
+              ? JSON.parse(dto.schemaContent)
+              : dto.schemaContent;
           if (parsed.properties) {
             fields = Object.keys(parsed.properties);
           }
@@ -263,7 +264,7 @@ export class SchemaService {
       };
     } catch (error) {
       console.error('[SchemaService] Failed to suggest name:', error);
-      
+
       // Fallback to generic name
       return {
         suggestedName: 'Generated Schema',
@@ -290,14 +291,14 @@ export class SchemaService {
     ];
 
     // Convert fields to lowercase for matching
-    const lowerFields = fields.map(f => f.toLowerCase());
-    
+    const lowerFields = fields.map((f) => f.toLowerCase());
+
     // Find best matching pattern
     for (const pattern of patterns) {
-      const matchCount = pattern.keywords.filter(kw => 
-        lowerFields.some(f => f.includes(kw))
+      const matchCount = pattern.keywords.filter((kw) =>
+        lowerFields.some((f) => f.includes(kw))
       ).length;
-      
+
       // If at least 2 keywords match, use this pattern
       if (matchCount >= 2) {
         return pattern.name;
@@ -308,9 +309,9 @@ export class SchemaService {
     const primaryField = fields[0];
     const formatted = primaryField
       .split(/[_-]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
-    
+
     return `${formatted} Form`;
   }
 
@@ -325,14 +326,14 @@ export class SchemaService {
       try {
         const parsed = JSON.parse(dto.input);
         const metadata = parsed['x-formsync-metadata'];
-        
+
         if (metadata && metadata.enhanced === true) {
           const enhancementCount = metadata.enhancementCount || 1;
-          const enhancedAt = metadata.enhancedAt 
-            ? new Date(metadata.enhancedAt).toLocaleString() 
+          const enhancedAt = metadata.enhancedAt
+            ? new Date(metadata.enhancedAt).toLocaleString()
             : 'unknown time';
           const model = metadata.model || 'AI';
-          
+
           throw new BadRequestException({
             message: 'Already enhanced schema detected',
             error: 'This appears to be a schema that has already been enhanced by the system',
@@ -353,10 +354,10 @@ export class SchemaService {
         // Otherwise, continue with normal validation (might be invalid JSON)
       }
     }
-    
+
     // Perform strict syntax validation (no conversion)
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
-    
+
     if (!syntaxValidation.valid) {
       // Return validation errors (don't throw, return structured response)
       throw new BadRequestException({
@@ -366,7 +367,7 @@ export class SchemaService {
         syntaxSuggestions: syntaxValidation.syntaxSuggestions,
       });
     }
-    
+
     // Syntax is valid - return success
     return {
       valid: true,
@@ -375,24 +376,24 @@ export class SchemaService {
   }
 
   /**
-  * POST /schema/quick-fix
+   * POST /schema/quick-fix
    * Attempt to automatically fix syntax errors
    * (Enhanced with AI fallback)
    */
   async quickFixSyntax(dto: ConvertSchemaDto) {
     // Validate the format
     const format = dto.format || 'json';
-    
+
     // Attempt quick fix (now async with AI fallback)
     const result = await this.syntaxValidator.attemptQuickFix(dto.input, format as any);
-    
+
     if (!result.success) {
       throw new BadRequestException({
         message: result.message,
         suggestion: 'Please fix the errors manually or use a more advanced fix option',
       });
     }
-    
+
     // Return the fixed input with confidence indicator
     return {
       success: true,
@@ -405,7 +406,7 @@ export class SchemaService {
   /**
    * POST /schema/convert
    * Auto-detect format and convert to JSON Schema Draft-7
-   * 
+   *
    * ENHANCED: Performs STRICT SYNTAX VALIDATION before any processing
    */
   async convertSchema(dto: ConvertSchemaDto) {
@@ -414,14 +415,14 @@ export class SchemaService {
       try {
         const parsed = JSON.parse(dto.input);
         const metadata = parsed['x-formsync-metadata'];
-        
+
         if (metadata && metadata.enhanced === true) {
           const enhancementCount = metadata.enhancementCount || 1;
-          const enhancedAt = metadata.enhancedAt 
-            ? new Date(metadata.enhancedAt).toLocaleString() 
+          const enhancedAt = metadata.enhancedAt
+            ? new Date(metadata.enhancedAt).toLocaleString()
             : 'unknown time';
           const model = metadata.model || 'AI';
-          
+
           throw new BadRequestException({
             message: 'Already enhanced schema detected',
             error: 'This appears to be a schema that has already been enhanced by the system',
@@ -442,11 +443,11 @@ export class SchemaService {
         // Otherwise, continue with normal validation (might be invalid JSON or YAML/XML)
       }
     }
-    
+
     // STEP 1: STRICT SYNTAX VALIDATION (NEW)
     // Validate syntax BEFORE any other processing
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
-    
+
     if (!syntaxValidation.valid) {
       // STOP processing on syntax errors
       throw new BadRequestException({
@@ -456,7 +457,7 @@ export class SchemaService {
         syntaxSuggestions: syntaxValidation.syntaxSuggestions,
       });
     }
-    
+
     // STEP 2: Check cache (only if syntax is valid)
     const crypto = await import('crypto');
     const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');

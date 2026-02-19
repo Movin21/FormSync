@@ -610,18 +610,18 @@ export class SchemaQualityEngine {
    */
   /**
    * Dimension 5: Enhancement Impact (10 points)
-   * 
+   *
    * RESEARCH JUSTIFICATION:
    * - Measures human-validated improvements (human-in-the-loop AI)
    * - Evidence: User acceptance rate of AI suggestions indicates quality
    * - Defensible metric: Applied/total suggestions ratio (objective)
    * - References: Human-AI collaboration best practices (Amershi et al., 2019)
-   * 
+   *
    * Scoring:
    * - 5 points: Safe auto-fixes applied by AI
    * - 5 points: User acceptance of AI suggestions
    * - Formula: (appliedSuggestions / totalSuggestions) * 5
-   * 
+   *
    * This dimension is DEFENSIBLE because:
    * 1. It measures user trust in AI (objective metric)
    * 2. Human validation prevents circular AI scoring
@@ -652,7 +652,7 @@ export class SchemaQualityEngine {
       else if (appliedCount >= 5) countScore = 4;
       else if (appliedCount >= 3) countScore = 3;
       else if (appliedCount >= 1) countScore = 2;
-      
+
       score += countScore;
 
       // Bonus for completion ratio (up to 2 points)
@@ -666,9 +666,7 @@ export class SchemaQualityEngine {
           `0 of ${totalSuggestions.length} AI suggestions applied - consider reviewing suggestions`
         );
       } else if (appliedCount < totalSuggestions.length) {
-        issues.push(
-          `${appliedCount} of ${totalSuggestions.length} AI suggestions applied`
-        );
+        issues.push(`${appliedCount} of ${totalSuggestions.length} AI suggestions applied`);
       }
     } else {
       // No suggestions generated
