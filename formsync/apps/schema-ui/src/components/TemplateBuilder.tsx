@@ -10,10 +10,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft, Wand2, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft, Wand2, Loader2, Pencil, Type, ToggleRight, List, Braces } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -234,22 +234,116 @@ interface SortableFieldItemProps {
   onToggleRequired: (id: string) => void;
   onRemove: (id: string) => void;
   onEdit: (id: string) => void;
+  isDragOverlay?: boolean;
 }
 
-const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ 
-  field, 
-  index, 
-  onToggleRequired, 
+const TYPE_CONFIG: Record<string, { color: string; bg: string; border: string; icon: React.ReactNode }> = {
+  string:  { color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800', icon: <Type className="h-3 w-3" /> },
+  number:  { color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',   icon: <Hash className="h-3 w-3" /> },
+  integer: { color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',   icon: <Hash className="h-3 w-3" /> },
+  boolean: { color: 'text-emerald-600',bg: 'bg-emerald-50 dark:bg-emerald-950/30',border: 'border-emerald-200 dark:border-emerald-800',icon: <ToggleRight className="h-3 w-3" /> },
+  array:   { color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', icon: <List className="h-3 w-3" /> },
+  object:  { color: 'text-pink-600',   bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',   icon: <Braces className="h-3 w-3" /> },
+};
+
+const getTypeConfig = (type: string) => TYPE_CONFIG[type] || TYPE_CONFIG.string;
+
+const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = ({
+  field,
+  index,
+  onToggleRequired,
   onRemove,
-  onEdit
+  onEdit,
+  isDragOverlay = false,
+  dragHandleProps,
 }) => {
+  const tc = getTypeConfig(field.type);
+  return (
+    <div
+      className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border bg-white dark:bg-neutral-900 transition-all ${
+        isDragOverlay
+          ? 'border-purple-400 shadow-2xl shadow-purple-200/60 dark:shadow-purple-900/40 ring-2 ring-purple-300/50'
+          : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-md'
+      }`}
+    >
+      {/* Drag handle */}
+      <div
+        {...dragHandleProps}
+        className="cursor-grab active:cursor-grabbing p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
+        title="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4 text-neutral-300 dark:text-neutral-600 group-hover:text-neutral-400 dark:group-hover:text-neutral-500 transition-colors" />
+      </div>
+
+      {/* Avatar */}
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
+        tc.bg
+      } ${tc.color}`}>
+        {field.name[0].toUpperCase()}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 truncate">{field.name}</span>
+          {field.required && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex-shrink-0">required</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+            tc.bg
+          } ${tc.color} ${tc.border}`}>
+            {tc.icon}
+            {field.type}
+          </span>
+          {field.description && (
+            <span className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">{field.description}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={() => onToggleRequired(field.id)}
+          title={field.required ? 'Mark optional' : 'Mark required'}
+          className={`p-1.5 rounded-md text-xs font-medium transition-colors ${
+            field.required
+              ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/60'
+              : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+          }`}
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => onEdit(field.id)}
+          title="Edit field"
+          className="p-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-blue-100 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => onRemove(field.id)}
+          title="Remove field"
+          className="p-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-red-100 dark:hover:bg-red-950/40 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const SortableFieldItem: React.FC<SortableFieldItemProps> = (props) => {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: field.id });
+    isDragging,
+  } = useSortable({ id: props.field.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -260,84 +354,19 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = ({
     <motion.div
       ref={setNodeRef}
       style={style}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="p-5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-lg transition-all bg-white dark:bg-neutral-800"
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{
+        opacity: isDragging ? 0.3 : 1,
+        scale: isDragging ? 0.98 : 1,
+      }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 flex-1">
-          {/* Drag Handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-            title="Drag to reorder"
-          >
-            <GripVertical className="h-5 w-5 text-neutral-400" />
-          </div>
-
-          <div className="w-12 h-12 rounded-xl border border-transparent bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
-            <div className="absolute inset-[1px] bg-white dark:bg-neutral-800 rounded-lg"></div>
-            <span className="relative z-10 bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold text-lg">
-              {field.name[0].toUpperCase()}
-            </span>
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
-            <div className="text-sm text-neutral-500">
-              Type: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{field.type}</span>
-              {field.description && (
-                <span className="ml-2 text-neutral-400">• {field.description}</span>
-              )}
-            </div>
-          </div>
-      </div>
-
-      <div className="flex items-center gap-2 mt-3">
-        {/* Required/Optional Toggle */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onToggleRequired(field.id)}
-            className="min-w-[100px] border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
-          >
-            {field.required ? (
-              <>
-                <Check className="h-4 w-4 text-indigo-600 mr-1" />
-                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-                  Required
-                </span>
-              </>
-            ) : (
-              <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
-            )}
-          </Button>
-        {/* Edit Field Button - Opens Modal */}
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onEdit(field.id)}
-          className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-          title="Edit field"
-        >
-          <span className="text-xs">✏️ Edit</span>
-        </Button>
-
-          
-
-          {/* Delete Button */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onRemove(field.id)}
-            className="hover:bg-red-100 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-            title="Delete field"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <FieldCard
+        {...props}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </motion.div>
   );
 };
@@ -349,6 +378,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   const [newFieldDescription, setNewFieldDescription] = useState('');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   
   // Schema name state
   const [schemaName, setSchemaName] = useState('');
@@ -356,7 +386,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -414,10 +446,14 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   };
 
   // Handle drag end for reordering
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
+  };
 
-    if (active.id !== over.id) {
+  const handleDragEnd = (event: any) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
       setFields((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
@@ -425,6 +461,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       });
     }
   };
+
+  const activeField = fields.find(f => f.id === activeId);
 
   // Load schema template
   const loadSchemaTemplate = (templateName: string) => {
@@ -558,7 +596,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 placeholder="e.g., Contact Form, User Registration"
                 value={schemaName}
                 onChange={(e) => setSchemaName(e.target.value)}
-                className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                className="flex-1 px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
               />
             </div>
           </div>
@@ -566,7 +604,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4" />
 
           <div>
-            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
               Field Name *
             </label>
             <input
@@ -575,18 +613,18 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               value={newFieldName}
               onChange={(e) => setNewFieldName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addField()}
-              className="w-full px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
             />
           </div>
 
           <div>
-            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
               Field Type *
             </label>
             <select
               value={newFieldType}
               onChange={(e) => setNewFieldType(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
             >
               <option value="string">String</option>
               <option value="number">Number</option>
@@ -597,8 +635,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </div>
 
           <div>
-            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
-              Description (Optional)
+            <label className="block text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5">
+              Description <span className="normal-case font-normal text-neutral-400">(optional)</span>
             </label>
             <input
               type="text"
@@ -606,7 +644,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               value={newFieldDescription}
               onChange={(e) => setNewFieldDescription(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addField()}
-              className="w-full px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full px-3.5 py-2.5 text-sm border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
             />
           </div>
 
@@ -623,8 +661,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </Button>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300 text-center">
-              ⚡ Quick Add Common Fields
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">
+              Quick Add Fields
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {FIELD_TEMPLATES.map((template) => (
@@ -641,33 +679,32 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 </Button>
               ))}
             </div>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center mt-4">
-              Press <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-700 rounded text-neutral-700 dark:text-neutral-300">Enter</kbd> to quickly add
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center mt-4">
+              Press <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-neutral-600 dark:text-neutral-300 text-[11px] font-mono">Enter</kbd> to quickly add
             </p>
           </div>
         </CardContent>
       </Card>
 
       {/* Center Panel - Field List */}
-      <Card className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
-        <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
+      <Card className="flex-1 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+        <CardHeader className="border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between mb-3">
-            <CardTitle className="text-lg flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
-              <FileJson className="h-5 w-5" />
-              Schema Fields ({fields.length})
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500" />
+              <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Schema Fields <span className="text-neutral-400 dark:text-neutral-500 font-normal">({fields.length})</span>
+              </CardTitle>
+            </div>
             <Button
               onClick={handleUseSchema}
               disabled={fields.length === 0}
-              size="lg"
-              variant="outline"
-              className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              size="sm"
+              className="gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Check className="h-5 w-5 text-green-600" />
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">
-                Use Schema in Editor
-              </span>
-              <ArrowRight className="h-5 w-5 text-green-600" />
+              <Check className="h-3.5 w-3.5" />
+              Use in Editor
+              <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
           {/* Template Button - Opens Modal */}
@@ -675,13 +712,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
             <Button
               onClick={() => setShowTemplateModal(true)}
               variant="outline"
-              size="lg"
-              className="w-full gap-2 border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+              size="sm"
+              className="w-full gap-2 text-xs border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800"
             >
-              <FileJson className="h-5 w-5 text-indigo-600" />
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-                Quick Start Templates
-              </span>
+              <FileJson className="h-3.5 w-3.5 text-purple-500" />
+              Quick Start Templates
             </Button>
           </div>
         </CardHeader>
@@ -699,37 +734,65 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
               <SortableContext
                 items={fields.map(f => f.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
-                    <SortableFieldItem
-                      key={field.id}
-                      field={field}
-                      index={index}
-                      onToggleRequired={toggleRequired}
-                      onRemove={removeField}
-                      onEdit={() => setExpandedFieldId(field.id)}
-                    />
-                  ))}
-                </div>
+                <AnimatePresence>
+                  <div className="space-y-2">
+                    {fields.map((field, index) => (
+                      <SortableFieldItem
+                        key={field.id}
+                        field={field}
+                        index={index}
+                        onToggleRequired={toggleRequired}
+                        onRemove={removeField}
+                        onEdit={() => setExpandedFieldId(field.id)}
+                      />
+                    ))}
+                  </div>
+                </AnimatePresence>
               </SortableContext>
+              <DragOverlay dropAnimation={{
+                duration: 200,
+                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+              }}>
+                {activeField ? (
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={{ scale: 1.03, rotate: 0.8 }}
+                    className="cursor-grabbing"
+                  >
+                    <FieldCard
+                      field={activeField}
+                      index={0}
+                      onToggleRequired={() => {}}
+                      onRemove={() => {}}
+                      onEdit={() => {}}
+                      isDragOverlay
+                      dragHandleProps={{}}
+                    />
+                  </motion.div>
+                ) : null}
+              </DragOverlay>
             </DndContext>
           )}
         </CardContent>
       </Card>
 
       {/* Right Panel - Live Preview */}
-      <Card className="w-96 border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
-        <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
-          <CardTitle className="text-lg text-neutral-800 dark:text-neutral-100">Schema Preview</CardTitle>
+      <Card className="w-96 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+        <CardHeader className="border-b border-neutral-200 dark:border-neutral-800">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Live Preview</CardTitle>
+          </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          <pre className="text-xs bg-neutral-900 dark:bg-neutral-950 text-green-400 p-4 rounded-lg overflow-auto max-h-[600px] font-mono">
+        <CardContent className="p-0">
+          <pre className="text-xs bg-neutral-950 text-green-400 p-4 rounded-b-xl overflow-auto max-h-[600px] font-mono leading-relaxed">
             {JSON.stringify(generateSchema(schemaName || undefined), null, 2)}
           </pre>
         </CardContent>
