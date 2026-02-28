@@ -172,6 +172,9 @@ export class SchemaMapper {
     }
 
     private capitalize(s: string): string {
-        return s.charAt(0).toUpperCase() + s.slice(1);
+        return s
+            .split(/[\s_-]+/)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('');
     }
 }

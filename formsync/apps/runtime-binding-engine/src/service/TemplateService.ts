@@ -65,16 +65,20 @@ export class TemplateService {
     private registerHelpers() {
         handlebars.registerHelper('toSnakeCase', (str: string) => {
             return str
+                .replace(/[\s-]+/g, '_')
                 .replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
                 .toLowerCase()
-                .replace(/^_/, '');
+                .replace(/^_/, '')
+                .replace(/_{2,}/g, '_');
         });
 
         handlebars.registerHelper('toKebabCase', (str: string) => {
             return str
+                .replace(/[\s_]+/g, '-')
                 .replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
                 .toLowerCase()
-                .replace(/^-/, '');
+                .replace(/^-/, '')
+                .replace(/-{2,}/g, '-');
         });
 
         handlebars.registerHelper('capitalizeFirst', (str: string) => {
