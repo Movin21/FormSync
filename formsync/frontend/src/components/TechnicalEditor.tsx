@@ -49,6 +49,7 @@ interface TechnicalEditorProps {
   onNextToFormBuilder?: () => void;
   stages?: any[];
   schemaFromBuilder?: string; // Schema transferred from Template Builder
+  isLoadedFromTemplate?: boolean; // True when schema was opened from a saved template (already enhanced)
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
@@ -58,6 +59,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onNextToFormBuilder,
   stages = [],
   schemaFromBuilder,
+  isLoadedFromTemplate = false,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -835,10 +837,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Next: Form Builder Button - Shows after Convert OR AI Enhancement is complete */}
+        {/* Right: Next: Form Builder Button - Shows after AI Enhancement completes, or immediately if schema was loaded from a saved template */}
         {onNextToFormBuilder &&
-          stages.length > 0 &&
-          (stages[2]?.status === 'complete' || stages[3]?.status === 'complete') && (
+          (isLoadedFromTemplate || (stages.length > 0 && stages[3]?.status === 'complete')) && (
             <div className="flex items-end">
               <Button
                 onClick={onNextToFormBuilder}
