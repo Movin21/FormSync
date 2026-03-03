@@ -225,6 +225,8 @@ export const EditorPage: React.FC = () => {
       const savedSchema = await response.json();
       toast.success('Template saved successfully!');
       setShowSaveDialog(false);
+      // Clear any pending session schema since we now have a real saved ID
+      sessionStorage.removeItem('formsync_pending_schema');
       goToBuilder(savedSchema.id);
     } catch (error) {
       toast.error('Failed to save template. Please try again.');
@@ -236,6 +238,10 @@ export const EditorPage: React.FC = () => {
   // User chose to skip saving and go straight to builder
   const handleSkipAndNavigate = () => {
     setShowSaveDialog(false);
+    // Persist the current schema so BuilderPage can pick it up without a saved ID
+    if (currentSchema) {
+      sessionStorage.setItem('formsync_pending_schema', JSON.stringify(currentSchema));
+    }
     goToBuilder();
   };
 

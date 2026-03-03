@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BuilderProvider, useBuilder } from '../context/BuilderContext';
 import { BuilderLayout } from '../builder/BuilderLayout';
 import { parseJsonSchemaToFormModel } from '../types';
@@ -11,8 +11,11 @@ import '../builder/builder.css';
  */
 const SchemaLoader: React.FC = () => {
     const { dispatch } = useBuilder();
+    const initialised = useRef(false);
 
     useEffect(() => {
+        if (initialised.current) return;
+        initialised.current = true;
         const urlParams = new URLSearchParams(window.location.search);
         const schemaId = urlParams.get('schemaId');
 
@@ -50,7 +53,26 @@ const SchemaLoader: React.FC = () => {
             };
             fetchSchema();
         } else {
-            loadDemoForm(dispatch);
+            // No saved schemaId — check for a schema passed via sessionStorage (skip-save path)
+            const pending = sessionStorage.getItem('formsync_pending_schema');
+            if (pending) {
+                sessionStorage.removeItem('formsync_pending_schema');
+                try {
+                    const schema = JSON.parse(pending);
+                    const formModel = parseJsonSchemaToFormModel(schema);
+                    dispatch({ type: 'UPDATE_FORM', payload: formModel });
+
+                    const n = document.createElement('div');
+                    n.textContent = '✅ Schema loaded';
+                    n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);';
+                    document.body.appendChild(n);
+                    setTimeout(() => n.remove(), 3000);
+                } catch {
+                    loadDemoForm(dispatch);
+                }
+            } else {
+                loadDemoForm(dispatch);
+            }
         }
     }, [dispatch]);
 
