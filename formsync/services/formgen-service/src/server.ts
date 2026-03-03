@@ -11,7 +11,9 @@
  *   GET  /health          — health check
  */
 
-import 'dotenv/config';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import express from 'express';
 import cors from 'cors';
 import * as path from 'path';
@@ -33,7 +35,7 @@ import {
 } from './generators';
 
 const app = express();
-const port = process.env.PORT || 3003;
+const port = process.env.FORMGEN_SERVICE_PORT || 3014;
 
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));

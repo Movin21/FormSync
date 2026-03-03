@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import express from 'express';
 import cors from 'cors';
 import * as path from 'path';
@@ -9,7 +11,7 @@ import { ZipService } from './service/ZipService';
 import { SchemaApiClient } from './client/SchemaApiClient';
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.RUNTIME_ENGINE_PORT || 3013;
 
 // Middleware
 app.use(cors());
