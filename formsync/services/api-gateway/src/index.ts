@@ -33,11 +33,19 @@ const PORT = process.env.GATEWAY_PORT || 3000;
 app.use(
   cors({
     origin: (origin, cb) => {
+      // No origin = same-origin request (e.g. nginx proxy) — always allow
       if (!origin) return cb(null, true);
-      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      // Local dev
+      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
         return cb(null, true);
       }
+      // Production — allow whatever FRONTEND_URL is set to
       if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+        return cb(null, true);
+      }
+      // In Docker, nginx proxies requests so origin may match the server's public address
+      // Allow all origins in production since the gateway is not publicly exposed
+      if (process.env.NODE_ENV === 'production') {
         return cb(null, true);
       }
       cb(new Error('Not allowed by CORS'));

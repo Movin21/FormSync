@@ -81,7 +81,7 @@ jobs:
               echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013"
               echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
               echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
-              echo "FRONTEND_URL=http://localhost:5173"
+              echo "FRONTEND_URL=http://localhost"
               echo "DOCKER_BUILDKIT=1"
               echo "COMPOSE_DOCKER_CLI_BUILD=1"
               echo "NPM_CONFIG_LOGLEVEL=warn"

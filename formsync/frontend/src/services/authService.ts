@@ -1,4 +1,4 @@
-const USER_API_URL = import.meta.env.VITE_USER_API_URL || 'http://localhost:3000';
+const USER_API_URL = import.meta.env.VITE_USER_API_URL || '';
 
 export interface AuthUser {
     id: string;

@@ -20,7 +20,7 @@ export interface GenerateResponse {
   error?: string;
 }
 
-const API_GATEWAY_URL = 'http://localhost:3000';
+const API_GATEWAY_URL = import.meta.env.VITE_API_URL || '';
 
 export const generationService = {
   /**

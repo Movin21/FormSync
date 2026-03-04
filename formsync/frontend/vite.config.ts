@@ -16,13 +16,36 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': {
+      '/schema': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
-      '/generate-react': {
-        target: 'http://localhost:3003',
+      '/auth': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/users': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/template': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/dto': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/runtime': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/formgen': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },
