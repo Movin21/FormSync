@@ -64,39 +64,38 @@ jobs:
             echo "✅ Found docker-compose.yml"
 
             echo "⚙️ Creating environment file..."
-            cat > .env <<'ENVEOF'
-NODE_ENV=production
-JWT_EXPIRES_IN=7d
-OPENAI_BASE_URL=https://api.groq.com/openai/v1
-OPENAI_MODEL=llama-3.3-70b-versatile
-GATEWAY_PORT=3000
-SCHEMA_ENGINE_PORT=3010
-USER_SERVICE_PORT=3011
-DTO_GENERATOR_PORT=3012
-RUNTIME_ENGINE_PORT=3013
-FORMGEN_SERVICE_PORT=3014
-SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010
-USER_SERVICE_URL=http://user-management-service:3011
-DTO_GENERATOR_URL=http://backend-dto-generator:3012
-RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013
-FORMGEN_SERVICE_URL=http://formgen-service:3014
-SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
-FRONTEND_URL=http://localhost:5173
-DOCKER_BUILDKIT=1
-COMPOSE_DOCKER_CLI_BUILD=1
-NPM_CONFIG_LOGLEVEL=warn
-NPM_CONFIG_PROGRESS=false
-NPM_CONFIG_AUDIT=false
-NPM_CONFIG_FUND=false
-ENVEOF
-            # Append secrets (these need variable expansion)
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
-            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
-            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
-            
+            {
+              echo "NODE_ENV=production"
+              echo "JWT_EXPIRES_IN=7d"
+              echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1"
+              echo "OPENAI_MODEL=llama-3.3-70b-versatile"
+              echo "GATEWAY_PORT=3000"
+              echo "SCHEMA_ENGINE_PORT=3010"
+              echo "USER_SERVICE_PORT=3011"
+              echo "DTO_GENERATOR_PORT=3012"
+              echo "RUNTIME_ENGINE_PORT=3013"
+              echo "FORMGEN_SERVICE_PORT=3014"
+              echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010"
+              echo "USER_SERVICE_URL=http://user-management-service:3011"
+              echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012"
+              echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013"
+              echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
+              echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
+              echo "FRONTEND_URL=http://localhost:5173"
+              echo "DOCKER_BUILDKIT=1"
+              echo "COMPOSE_DOCKER_CLI_BUILD=1"
+              echo "NPM_CONFIG_LOGLEVEL=warn"
+              echo "NPM_CONFIG_PROGRESS=false"
+              echo "NPM_CONFIG_AUDIT=false"
+              echo "NPM_CONFIG_FUND=false"
+              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
+              echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
+              echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
+              echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
+            } > .env
+
             echo "📋 .env file contents (redacted):"
             grep -v "SECRET\|PASSWORD\|KEY\|DATABASE_URL" .env || true
 
