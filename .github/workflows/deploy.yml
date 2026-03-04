@@ -1,5 +1,10 @@
 name: Deploy FormSync to EC2
 
+# SYSTEM REQUIREMENTS:
+# - EC2: t3.medium or larger (2+ vCPU, 4+ GB RAM)
+# - Storage: 20+ GB available space
+# - Docker Engine with BuildKit support
+
 on:
   push:
     branches: [Deployment]
@@ -8,12 +13,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # Increase timeout for Docker builds
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
+        timeout: 25m # SSH action timeout
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
@@ -78,25 +85,89 @@ jobs:
             FORMGEN_SERVICE_URL=http://formgen-service:3014
             SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
             FRONTEND_URL=http://localhost:5173
+
+            # Docker build optimizations
+            DOCKER_BUILDKIT=1
+            COMPOSE_DOCKER_CLI_BUILD=1
+            BUILDKIT_PROGRESS=plain
+
+            # NPM optimizations for faster installs
+            NPM_CONFIG_LOGLEVEL=warn
+            NPM_CONFIG_PROGRESS=false
+            NPM_CONFIG_AUDIT=false
+            NPM_CONFIG_FUND=false
             EOF
 
             echo "🐳 Stopping existing containers..."
             docker compose down -v 2>/dev/null || true
 
-            echo "🔨 Building and starting containers..."
-            docker compose up -d --build
+            echo "🧹 Pre-build cleanup..."
+            docker system prune -f --volumes 2>/dev/null || true
 
-            # Wait a moment for containers to start
+            echo "⚙️ Configuring Docker for resource-limited environment..."
+            # Limit Docker build parallelism to prevent resource exhaustion
+            export DOCKER_BUILDKIT=1
+            export COMPOSE_DOCKER_CLI_BUILD=1
+
+            echo "🔨 Building containers (sequential build to prevent timeout)..."
+            echo "   📦 Building PostgreSQL..."
+            docker compose build postgres || {
+              echo "❌ Failed to build postgres"
+              exit 1
+            }
+
+            echo "   📦 Building services (with build timeout)..."
+            timeout 900s docker compose build --parallel 3 || {
+              echo "⚠️  Parallel build timed out, trying sequential build..."
+              
+              # Try building the most resource-intensive services first
+              echo "   🔨 Building schema-enhancement-engine..."
+              docker compose build schema-enhancement-engine || echo "⚠️ Schema engine build failed"
+              
+              echo "   🔨 Building user-management-service..."  
+              docker compose build user-management-service || echo "⚠️ User service build failed"
+              
+              echo "   🔨 Building remaining services..."
+              docker compose build backend-dto-generator runtime-binding-engine formgen-service api-gateway frontend || echo "⚠️ Some service builds failed"
+            }
+
+            echo "🚀 Starting containers..."
+            docker compose up -d --no-build
+
+            # Wait for containers to stabilize
             echo "⏳ Waiting for containers to start..."
-            sleep 10
+            sleep 15
 
             echo "🧹 Cleaning up old images..."
             docker image prune -f
 
-            echo "📊 Container status:"
+            echo "📊 Final container status:"
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-            echo "🔍 Container logs (if any failures):"
-            docker ps -a --filter "status=exited" --format "{{.Names}}" | head -3 | xargs -I {} sh -c 'echo "=== {} logs ==="; docker logs --tail 5 {}'
+            echo "🔍 Health check status:"
+            docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(healthy|unhealthy|starting)" || echo "No health status info"
 
-            echo "✅ Deployment complete!"
+            echo "📈 Resource usage:"
+            docker system df || echo "Could not get resource usage"
+
+            # Check for any failed containers
+            FAILED_CONTAINERS=$(docker ps -a --filter "status=exited" --format "{{.Names}}" | head -5)
+            if [ ! -z "$FAILED_CONTAINERS" ]; then
+              echo "⚠️  Failed containers detected:"
+              echo "$FAILED_CONTAINERS" | while read container; do
+                echo "=== $container logs (last 10 lines) ==="
+                docker logs --tail 10 "$container" 2>&1 || echo "Could not get logs"
+              done
+            else
+              echo "✅ No failed containers detected"
+            fi
+
+            # Final status check
+            RUNNING_COUNT=$(docker ps --filter "status=running" | wc -l)
+            if [ "$RUNNING_COUNT" -gt 5 ]; then
+              echo "🎉 Deployment successful! $RUNNING_COUNT containers running"
+            else
+              echo "⚠️  Only $RUNNING_COUNT containers running - check for issues"
+            fi
+
+            echo "✅ Deployment script complete!"
