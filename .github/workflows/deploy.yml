@@ -19,12 +19,42 @@ jobs:
           username: ${{ secrets.USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo "🏠 Starting in directory: $(pwd)"
+            
+            # Ensure we're in the right directory
+            mkdir -p ~/formsync
             cd ~/formsync
-            echo "🔄 Pulling latest code..."
-            git pull origin Deployment || git clone https://github.com/${{ github.repository }}.git .
-
-            echo "📁 Navigating to formsync directory..."
+            echo "📁 Current directory: $(pwd)"
+            
+            echo "🔄 Configuring git and pulling latest code..."
+            git config pull.rebase false || true
+            
+            # Check if directory is empty or has git repo
+            if [ -d ".git" ]; then
+              echo "📥 Updating existing repository..."
+              git fetch origin
+              git reset --hard origin/Deployment
+            else
+              echo "📥 Cloning fresh repository..."
+              rm -rf ./* ./.* 2>/dev/null || true
+              git clone https://github.com/${{ github.repository }}.git .
+              git checkout Deployment
+            fi
+            
+            echo "📁 Navigating to formsync subdirectory..."
             cd formsync
+            echo "📂 Current directory: $(pwd)"
+            echo "📄 Files in current directory:"
+            ls -la
+            
+            # Verify docker-compose.yml exists
+            if [ ! -f "docker-compose.yml" ]; then
+              echo "❌ ERROR: docker-compose.yml not found!"
+              echo "📋 Directory contents:"
+              find . -name "docker-compose.yml" -type f
+              exit 1
+            fi
+            echo "✅ Found docker-compose.yml"
 
             echo "⚙️ Creating environment file..."
             cat > .env << EOF
@@ -55,11 +85,18 @@ jobs:
 
             echo "🔨 Building and starting containers..."
             docker compose up -d --build
+            
+            # Wait a moment for containers to start
+            echo "⏳ Waiting for containers to start..."
+            sleep 10
 
             echo "🧹 Cleaning up old images..."
             docker image prune -f
 
             echo "📊 Container status:"
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            
+            echo "🔍 Container logs (if any failures):"
+            docker ps -a --filter "status=exited" --format "{{.Names}}" | head -3 | xargs -I {} sh -c 'echo "=== {} logs ==="; docker logs --tail 5 {}'
 
             echo "✅ Deployment complete!"
