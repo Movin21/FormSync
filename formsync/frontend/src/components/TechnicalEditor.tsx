@@ -4,18 +4,19 @@
  * Integrated schema editor with generation controls
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import Editor from '@monaco-editor/react';
-import { useSchemaStore } from '../stores/schemaStore';
-import { schemaApi } from '../api/schemaApi';
-import { FormatSelector, type FormatType } from './FormatSelector';
-import { SchemaTreeView } from './SchemaTreeView';
-import { SuggestionsPanel } from './SuggestionsPanel';
-import { ValidationDialog } from './ValidationDialog';
-import { QualityMetricsPanel } from './QualityMetricsPanel';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import Editor from "@monaco-editor/react";
+import { useSchemaStore } from "../stores/schemaStore";
+import { schemaApi } from "../api/schemaApi";
+import { FormatSelector, type FormatType } from "./FormatSelector";
+import { SchemaTreeView } from "./SchemaTreeView";
+import { SuggestionsPanel } from "./SuggestionsPanel";
+import { SchemaDiffView } from "./SchemaDiffView";
+import { ValidationDialog } from "./ValidationDialog";
+import { QualityMetricsPanel } from "./QualityMetricsPanel";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import {
   Zap,
   CheckCircle,
@@ -31,9 +32,10 @@ import {
   Play,
   FileText,
   FileJson,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
+  GitCompare,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // History entry for undo/redo
 interface HistoryEntry {
@@ -68,6 +70,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showQualityMetrics, setShowQualityMetrics] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [showDiffView, setShowDiffView] = useState(false);
+  // Snapshot of the schema before any AI suggestions are applied (set on first enhance)
+  const originalSchemaRef = useRef<any>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -532,6 +537,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       }
 
       clearError();
+      // Capture the pre-enhancement schema once so diff always compares against the original
+      if (!originalSchemaRef.current) {
+        originalSchemaRef.current = schemaToEnhance;
+      }
       setEnhanceLoading(true);
       onStageUpdate?.('AI Enhancement', 'loading');
       try {
@@ -578,8 +587,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     let enhancementSucceeded = false;
 
     try {
-      toast.info('🚀 Starting automated workflow...', {
-        description: 'Step 1 of 4: Validating...',
+      toast.info("Starting automated workflow...", {
+        description: "Step 1 of 4: Validating...",
         duration: 2000,
       });
 
@@ -594,8 +603,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         return;
       }
 
-      toast.info('⚙️ Processing...', {
-        description: 'Step 2 of 4: Converting to JSON Schema...',
+      toast.info("Processing...", {
+        description: "Step 2 of 4: Converting to JSON Schema...",
         duration: 2000,
       });
 
@@ -624,8 +633,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         return;
       }
 
-      toast.info('🤖 AI Processing...', {
-        description: 'Step 3 of 4: AI Enhancement...',
+      toast.info("AI Processing...", {
+        description: "Step 3 of 4: AI Enhancement...",
         duration: 2000,
       });
 
@@ -660,8 +669,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         // Continue to step 4 even if enhancement fails
       }
 
-      toast.info('✨ Finalizing...', {
-        description: 'Step 4 of 4: Auto-applying all suggestions...',
+      toast.info("Finalizing...", {
+        description: "Step 4 of 4: Auto-applying all suggestions...",
         duration: 2000,
       });
 
@@ -1166,6 +1175,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </Button>
           )}
 
+          {/* Schema Diff */}
+          {originalSchemaRef.current && currentSchema && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDiffView(true)}
+              className={`w-full justify-start gap-3 h-10 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 ${!sidebarExpanded && "px-2"}`}
+              title={!sidebarExpanded ? "View AI Changes (Diff)" : undefined}
+            >
+              <GitCompare className="h-4 w-4 flex-shrink-0 text-indigo-600" />
+              {sidebarExpanded && <span className="text-sm">View Changes</span>}
+            </Button>
+          )}
+
           {/* Quality Score */}
           {qualityMetrics && (
             <Button
@@ -1338,6 +1361,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           </Card>
         </div>
       </div>
+
+      {/* Schema Diff View */}
+      <AnimatePresence>
+        {showDiffView && originalSchemaRef.current && currentSchema && (
+          <SchemaDiffView
+            beforeSchema={originalSchemaRef.current}
+            afterSchema={currentSchema}
+            onClose={() => setShowDiffView(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* AI Suggestions Dialog */}
       {showSuggestions && suggestions && suggestions.length > 0 && (
