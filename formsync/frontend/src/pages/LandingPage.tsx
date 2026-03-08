@@ -1,7 +1,5 @@
 /**
  * Landing Page - FormSync Pipeline System Showcase
- *
- * Professional SaaS-level landing page with modern design
  */
 
 import React, { useState, useEffect } from "react";
