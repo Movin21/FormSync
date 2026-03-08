@@ -24,7 +24,7 @@ const SchemaLoader: React.FC = () => {
     if (schemaId) {
       const fetchSchema = async () => {
         try {
-          const response = await fetch(`/schema/${schemaId}`);
+          const response = await fetch(`/api/schema/${schemaId}`);
           if (!response.ok)
             throw new Error(
               `API returned ${response.status}: ${response.statusText}`,
@@ -35,12 +35,6 @@ const SchemaLoader: React.FC = () => {
 
           dispatch({ type: "UPDATE_FORM", payload: formModel });
           dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
-
-          // Persist raw JSON Schema so GeneratedCodePage can use it
-          sessionStorage.setItem(
-            "formsync_builder_schema",
-            JSON.stringify(schemaData.content),
-          );
 
           // Clean up URL param
           window.history.replaceState({}, "", window.location.pathname);
@@ -71,20 +65,16 @@ const SchemaLoader: React.FC = () => {
         const loadAndSave = async () => {
           try {
             const schema = JSON.parse(pending);
+            // Keep raw schema accessible for GeneratedCodePage (separate key, not removed here)
+            sessionStorage.setItem("formsync_schema_raw", pending);
             // Convert to FormModel and load into builder
             const formModel = parseJsonSchemaToFormModel(schema);
             dispatch({ type: "UPDATE_FORM", payload: formModel });
 
-            // Persist raw JSON Schema so GeneratedCodePage can use it
-            sessionStorage.setItem(
-              "formsync_builder_schema",
-              JSON.stringify(schema),
-            );
-
             // Auto-save to get a real schemaId so "Generate Code" works
             if (user?.id) {
               try {
-                const saveResponse = await fetch("/schema", {
+                const saveResponse = await fetch("/api/schema", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({

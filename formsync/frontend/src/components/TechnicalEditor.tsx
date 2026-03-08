@@ -47,7 +47,10 @@ interface HistoryEntry {
 interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
-  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
+  onStageUpdate?: (
+    stageName: string,
+    status: "loading" | "complete" | "error" | "pending",
+  ) => void;
   onNextToFormBuilder?: () => void;
   stages?: any[];
   schemaFromBuilder?: string; // Schema transferred from Template Builder
@@ -64,8 +67,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   isLoadedFromTemplate = false,
 }) => {
   // State
-  const [format, setFormat] = useState<FormatType>('json');
-  const [editorValue, setEditorValue] = useState('');
+  const [format, setFormat] = useState<FormatType>("json");
+  const [editorValue, setEditorValue] = useState("");
   const [showTreeView, setShowTreeView] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showQualityMetrics, setShowQualityMetrics] = useState(false);
@@ -82,11 +85,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Schema name state
-  const [schemaName, setSchemaName] = useState('');
+  const [schemaName, setSchemaName] = useState("");
 
   // Validation state
   const [isInputValid, setIsInputValid] = useState(false);
-  const [validationError, setValidationError] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>("");
 
   // Individual loading states for each action
   const [convertLoading, setConvertLoading] = useState(false);
@@ -94,7 +97,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [enhanceLoading, setEnhanceLoading] = useState(false);
 
   // Workflow mode: 'manual' or 'automated'
-  const [workflowMode, setWorkflowMode] = useState<'manual' | 'automated'>('manual');
+  const [workflowMode, setWorkflowMode] = useState<"manual" | "automated">(
+    "manual",
+  );
   const [autoWorkflowRunning, setAutoWorkflowRunning] = useState(false);
 
   // Store
@@ -125,12 +130,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Using empty deps array to prevent Monaco onChange from being recreated
   const handleEditorChange = useCallback(
     (value: string | undefined) => {
-      const newValue = value || '';
+      const newValue = value || "";
       setEditorValue(newValue);
 
       // Update "Enter Schema" stage based on content
       if (newValue.trim()) {
-        onStageUpdateRef.current?.('Enter Schema', 'complete');
+        onStageUpdateRef.current?.("Enter Schema", "complete");
       }
 
       // Track changes in history with debouncing (only if not undo/redo action)
@@ -146,7 +151,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             const newEntry: HistoryEntry = {
               content: newValue,
               timestamp: Date.now(),
-              action: 'edit',
+              action: "edit",
             };
 
             // Skip if content hasn't changed
@@ -163,7 +168,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         }, 500); // 500ms debounce
       }
     },
-    [] // Empty deps - handler is stable
+    [], // Empty deps - handler is stable
   );
 
   // Cleanup debounce timer on unmount
@@ -182,7 +187,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         {
           content: editorValue,
           timestamp: Date.now(),
-          action: 'init',
+          action: "init",
         },
       ]);
       setHistoryIndex(0);
@@ -196,7 +201,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         {
           content: editorValue,
           timestamp: Date.now(),
-          action: 'init',
+          action: "init",
         },
       ]);
       setHistoryIndex(0);
@@ -205,9 +210,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   // Populate editor when schema is transferred from Template Builder
   useEffect(() => {
-    if (schemaFromBuilder && schemaFromBuilder.trim() && schemaFromBuilder !== editorValue) {
+    if (
+      schemaFromBuilder &&
+      schemaFromBuilder.trim() &&
+      schemaFromBuilder !== editorValue
+    ) {
       setEditorValue(schemaFromBuilder);
-      setFormat('json'); // Template Builder always generates JSON
+      setFormat("json"); // Template Builder always generates JSON
 
       // Extract schema name from title if present
       try {
@@ -219,8 +228,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         // Ignore parse errors
       }
 
-      toast.success('Schema loaded from Template Builder!');
-      onStageUpdate?.('Enter Schema', 'complete');
+      toast.success("Schema loaded from Template Builder!");
+      onStageUpdate?.("Enter Schema", "complete");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
@@ -241,7 +250,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         {
           content: editorValue,
           timestamp: Date.now(),
-          action: 'initial',
+          action: "initial",
         },
       ]);
       setHistoryIndex(0);
@@ -254,20 +263,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // 1. Validate raw input first (ONLY validates, does NOT convert)
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
-      toast.error('Please enter some code to validate');
+      toast.error("Please enter some code to validate");
       return;
     }
 
     // Check if schema name is provided
     if (!schemaName || !schemaName.trim()) {
-      toast.error('Please enter a schema name before validation');
-      setValidationError('Schema name is required');
+      toast.error("Please enter a schema name before validation");
+      setValidationError("Schema name is required");
       return;
     }
 
     clearError();
     setValidateLoading(true);
-    onStageUpdate?.('Input Validation', 'loading');
+    onStageUpdate?.("Input Validation", "loading");
 
     try {
       // Call backend syntax validation API (validation only, no conversion)
@@ -275,20 +284,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Validation passed
       setIsInputValid(true);
-      setValidationError('');
-      onStageUpdate?.('Input Validation', 'complete');
+      setValidationError("");
+      onStageUpdate?.("Input Validation", "complete");
 
       toast.success(`Valid ${format.toUpperCase()} format!`, {
-        description: 'You can now convert to JSON Schema',
+        description: "You can now convert to JSON Schema",
       });
 
       // Special case: If format is already JSON, also trigger semantic validation
       // but DO NOT populate the output - user must click "Convert" for that
-      if (format === 'json') {
+      if (format === "json") {
         try {
           const schema = JSON.parse(editorValue);
           // Only validate if it looks like a schema (has type or properties)
-          if (typeof schema === 'object' && schema !== null) {
+          if (typeof schema === "object" && schema !== null) {
             await useSchemaStore.getState().validateSchema(schema);
             // DO NOT set current schema here - validation should not populate output
           }
@@ -307,12 +316,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         const backendError = error.response.data;
         const metadata = backendError.metadata || {};
 
-        setValidationError(backendError.details || 'This is already an enhanced schema');
+        setValidationError(
+          backendError.details || "This is already an enhanced schema",
+        );
 
-        onStageUpdate?.('Input Validation', 'error');
+        onStageUpdate?.("Input Validation", "error");
 
-        toast.error('Already Enhanced Schema Detected', {
-          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+        toast.error("Already Enhanced Schema Detected", {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || "AI"}. Please use the original raw schema instead.`,
           duration: 6000,
         });
 
@@ -321,15 +332,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       }
 
       // Check if this is a syntax validation error from backend
-      if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
+      if (
+        error.response?.data?.syntaxErrors ||
+        error.response?.data?.formatMismatch
+      ) {
         const backendError = error.response.data;
 
         // Format detailed error message
-        let errorMessage = '';
+        let errorMessage = "";
 
         if (backendError.formatMismatch) {
           errorMessage = backendError.formatMismatch.message;
-        } else if (backendError.syntaxErrors && backendError.syntaxErrors.length > 0) {
+        } else if (
+          backendError.syntaxErrors &&
+          backendError.syntaxErrors.length > 0
+        ) {
           const firstError = backendError.syntaxErrors[0];
           errorMessage = firstError.message;
 
@@ -339,20 +356,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             if (firstError.column) {
               errorMessage += `, Column ${firstError.column}`;
             }
-            errorMessage += ')';
+            errorMessage += ")";
           }
         }
 
-        setValidationError(errorMessage || 'Syntax validation failed');
+        setValidationError(errorMessage || "Syntax validation failed");
       } else {
         // Other errors
-        setValidationError(error.response?.data?.message || error.message || 'Validation failed');
+        setValidationError(
+          error.response?.data?.message || error.message || "Validation failed",
+        );
       }
 
-      onStageUpdate?.('Input Validation', 'error');
+      onStageUpdate?.("Input Validation", "error");
 
-      toast.error('Validation Failed', {
-        description: 'Click to see details',
+      toast.error("Validation Failed", {
+        description: "Click to see details",
         duration: 3000,
       });
 
@@ -369,21 +388,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // 2. Convert to JSON Schema
   const handleConvert = useCallback(async () => {
     if (!editorValue.trim()) {
-      const error = new Error('Please enter and validate your schema first');
-      toast.error('Please enter and validate your schema first');
+      const error = new Error("Please enter and validate your schema first");
+      toast.error("Please enter and validate your schema first");
       throw error;
     }
 
     // Check if schema name is provided
     if (!schemaName || !schemaName.trim()) {
-      const error = new Error('Please enter a schema name before conversion');
-      toast.error('Please enter a schema name before conversion');
+      const error = new Error("Please enter a schema name before conversion");
+      toast.error("Please enter a schema name before conversion");
       throw error;
     }
 
     clearError();
     setConvertLoading(true);
-    onStageUpdate?.('Schema Conversion', 'loading');
+    onStageUpdate?.("Schema Conversion", "loading");
     try {
       // Convert and get the schema back
       const schema = await convertSchema(editorValue, format);
@@ -394,8 +413,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         setCurrentSchema(schema);
       }
 
-      toast.success('Schema converted to JSON Schema successfully!');
-      onStageUpdate?.('Schema Conversion', 'complete');
+      toast.success("Schema converted to JSON Schema successfully!");
+      onStageUpdate?.("Schema Conversion", "complete");
 
       // Trigger semantic validation on the converted schema
       if (schema) {
@@ -407,34 +426,49 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         const backendError = error.response.data;
         const metadata = backendError.metadata || {};
 
-        toast.error('Already Enhanced Schema Detected', {
-          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+        toast.error("Already Enhanced Schema Detected", {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || "AI"}. Please use the original raw schema instead.`,
           duration: 6000,
         });
       } else {
-        toast.error(error.response?.data?.message || error.message || 'Failed to convert schema');
+        toast.error(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to convert schema",
+        );
       }
-      onStageUpdate?.('Schema Conversion', 'error');
+      onStageUpdate?.("Schema Conversion", "error");
 
       // Re-throw so automated workflow can catch it
       throw error;
     } finally {
       setConvertLoading(false);
     }
-  }, [editorValue, format, schemaName, convertSchema, clearError, onStageUpdate, setCurrentSchema]);
+  }, [
+    editorValue,
+    format,
+    schemaName,
+    convertSchema,
+    clearError,
+    onStageUpdate,
+    setCurrentSchema,
+  ]);
 
   // Quick Fix - Apply syntax corrections
   const handleAIFix = useCallback(async () => {
     if (!editorValue) {
-      toast.error('No code to fix');
+      toast.error("No code to fix");
       return;
     }
 
-    toast.loading('Applying quick fix...');
+    toast.loading("Applying quick fix...");
 
     try {
       // Call backend quick fix API
-      const response = await schemaApi.quickFixSyntax({ input: editorValue, format });
+      const response = await schemaApi.quickFixSyntax({
+        input: editorValue,
+        format,
+      });
 
       if (response.data.fixedInput) {
         // Update editor with fixed code
@@ -444,40 +478,40 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
         // Show different message based on confidence
         const confidenceMessage =
-          response.data.confidence === 'deterministic'
-            ? 'Fixed automatically'
-            : 'Fixed using Quick Fix';
+          response.data.confidence === "deterministic"
+            ? "Fixed automatically"
+            : "Fixed using Quick Fix";
 
-        toast.success('Syntax errors fixed!', {
+        toast.success("Syntax errors fixed!", {
           description: confidenceMessage,
         });
 
         // Close validation dialog
         setShowValidationDialog(false);
-        setValidationError('');
+        setValidationError("");
         setIsInputValid(true);
       } else {
         toast.dismiss();
-        toast.error('Could not automatically fix syntax', {
-          description: 'Please fix manually',
+        toast.error("Could not automatically fix syntax", {
+          description: "Please fix manually",
         });
       }
     } catch (error: any) {
       toast.dismiss();
 
       // Check if this is a "cannot fix" error
-      const errorMessage = error.response?.data?.message || '';
+      const errorMessage = error.response?.data?.message || "";
 
-      if (errorMessage.includes('Could not automatically fix')) {
-        toast.error('Cannot auto-fix this format', {
+      if (errorMessage.includes("Could not automatically fix")) {
+        toast.error("Cannot auto-fix this format", {
           description:
-            format === 'xml'
-              ? 'XML syntax is too complex to auto-fix. Please correct manually.'
-              : 'This syntax error is too complex to fix automatically.',
+            format === "xml"
+              ? "XML syntax is too complex to auto-fix. Please correct manually."
+              : "This syntax error is too complex to fix automatically.",
         });
       } else {
-        toast.error('Quick fix failed', {
-          description: error.response?.data?.message || 'Unable to apply fixes',
+        toast.error("Quick fix failed", {
+          description: error.response?.data?.message || "Unable to apply fixes",
         });
       }
     }
@@ -490,33 +524,38 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       const targetSchema = providedSchema || displaySchema;
 
       if (!targetSchema) {
-        const error = new Error('No schema to enhance');
-        toast.error('No schema to enhance');
+        const error = new Error("No schema to enhance");
+        toast.error("No schema to enhance");
         throw error;
       }
 
       // ✅ Check enhancement limit (max 2 times)
       // IMPORTANT: Check the schema that will actually be sent to backend
       const schemaToCheck =
-        suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
+        suggestions && suggestions.length > 0 && baseSchema
+          ? baseSchema
+          : targetSchema;
 
-      console.log('[DEBUG] Checking enhancement count:', {
-        schemaToCheck: schemaToCheck?.['x-formsync-metadata'],
-        targetSchema: targetSchema?.['x-formsync-metadata'],
-        baseSchema: baseSchema?.['x-formsync-metadata'],
+      console.log("[DEBUG] Checking enhancement count:", {
+        schemaToCheck: schemaToCheck?.["x-formsync-metadata"],
+        targetSchema: targetSchema?.["x-formsync-metadata"],
+        baseSchema: baseSchema?.["x-formsync-metadata"],
         hasSuggestions: suggestions && suggestions.length > 0,
       });
 
-      const metadata = schemaToCheck['x-formsync-metadata'];
+      const metadata = schemaToCheck["x-formsync-metadata"];
       const enhancementCount = metadata?.enhancementCount || 0;
 
-      console.log('[DEBUG] Enhancement count check:', { enhancementCount, metadata });
+      console.log("[DEBUG] Enhancement count check:", {
+        enhancementCount,
+        metadata,
+      });
 
       if (enhancementCount >= 2) {
         const error = new Error(
-          "The schema is already enhanced two times and can't enhance to stop over-optimization"
+          "The schema is already enhanced two times and can't enhance to stop over-optimization",
         );
-        toast.error('Cannot enhance schema', {
+        toast.error("Cannot enhance schema", {
           description:
             "The schema is already enhanced two times and can't be enhanced further to stop over-optimization.",
           duration: 5000,
@@ -527,12 +566,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
       // This prevents suggestions from disappearing when clicking enhance again
       const schemaToEnhance =
-        suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
+        suggestions && suggestions.length > 0 && baseSchema
+          ? baseSchema
+          : targetSchema;
 
       // Log for debugging
       if (suggestions && suggestions.length > 0) {
         console.log(
-          '[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions'
+          "[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions",
         );
       }
 
@@ -542,7 +583,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         originalSchemaRef.current = schemaToEnhance;
       }
       setEnhanceLoading(true);
-      onStageUpdate?.('AI Enhancement', 'loading');
+      onStageUpdate?.("AI Enhancement", "loading");
       try {
         await enhanceSchema(schemaToEnhance);
 
@@ -551,30 +592,43 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         const pendingCount = freshSuggestions.filter((s) => !s.applied).length;
 
         if (pendingCount > 0) {
-          toast.success(`${pendingCount} AI suggestion${pendingCount > 1 ? 's' : ''} ready!`, {
-            description: 'Review and apply them in the suggestions panel.',
-          });
+          toast.success(
+            `${pendingCount} AI suggestion${pendingCount > 1 ? "s" : ""} ready!`,
+            {
+              description: "Review and apply them in the suggestions panel.",
+            },
+          );
           setShowSuggestions(true);
         } else {
-          toast.info('Enhancement complete', {
-            description: 'No new suggestions — your schema already looks great!',
+          toast.info("Enhancement complete", {
+            description:
+              "No new suggestions — your schema already looks great!",
           });
         }
 
-        onStageUpdate?.('AI Enhancement', 'complete');
+        onStageUpdate?.("AI Enhancement", "complete");
       } catch (error: any) {
         const errorMessage =
-          error.response?.data?.message || error.message || 'Failed to enhance schema';
-        toast.error('Enhancement failed', {
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to enhance schema";
+        toast.error("Enhancement failed", {
           description: errorMessage,
         });
-        onStageUpdate?.('AI Enhancement', 'error');
+        onStageUpdate?.("AI Enhancement", "error");
         throw error; // Re-throw so automated workflow can catch it
       } finally {
         setEnhanceLoading(false);
       }
     },
-    [displaySchema, baseSchema, suggestions, enhanceSchema, clearError, onStageUpdate]
+    [
+      displaySchema,
+      baseSchema,
+      suggestions,
+      enhanceSchema,
+      clearError,
+      onStageUpdate,
+    ],
   );
 
   // One-click automated workflow - Validate → Convert → Enhance → Apply All Suggestions
@@ -597,8 +651,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         await handleValidate();
         await new Promise((resolve) => setTimeout(resolve, 600));
       } catch (error) {
-        toast.error('Workflow stopped', {
-          description: 'Validation failed. Please fix errors and try again.',
+        toast.error("Workflow stopped", {
+          description: "Validation failed. Please fix errors and try again.",
         });
         return;
       }
@@ -624,11 +678,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         }
 
         if (!currentSchema) {
-          throw new Error('Schema not available after conversion. Please try again.');
+          throw new Error(
+            "Schema not available after conversion. Please try again.",
+          );
         }
       } catch (error) {
-        toast.error('Workflow stopped', {
-          description: error instanceof Error ? error.message : 'Conversion failed.',
+        toast.error("Workflow stopped", {
+          description:
+            error instanceof Error ? error.message : "Conversion failed.",
         });
         return;
       }
@@ -656,12 +713,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           waitCount++;
         }
       } catch (error: any) {
-        console.log('Enhancement failed:', error);
+        console.log("Enhancement failed:", error);
         const errorMessage =
-          error?.response?.data?.message || error?.message || 'Unknown error occurred';
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unknown error occurred";
 
         // Show the actual error reason
-        toast.error('Auto enhancement failed', {
+        toast.error("Auto enhancement failed", {
           description: `Reason: ${errorMessage}`,
           duration: 4000,
         });
@@ -683,17 +742,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
         for (const suggestion of unappliedSuggestions) {
           try {
-            await applySuggestion(suggestion, 'apply');
+            await applySuggestion(suggestion, "apply");
             appliedCount++;
             await new Promise((resolve) => setTimeout(resolve, 200)); // Small delay between applies
           } catch (error) {
-            console.error('Failed to apply suggestion:', suggestion.id, error);
+            console.error("Failed to apply suggestion:", suggestion.id, error);
           }
         }
 
-        const enhancedText = enhancementSucceeded ? 'enhanced, and' : 'and';
-        toast.success('Automated workflow complete!', {
-          description: `Schema validated, converted, ${enhancedText} ${appliedCount} suggestion${appliedCount !== 1 ? 's' : ''} applied automatically.`,
+        const enhancedText = enhancementSucceeded ? "enhanced, and" : "and";
+        toast.success("Automated workflow complete!", {
+          description: `Schema validated, converted, ${enhancedText} ${appliedCount} suggestion${appliedCount !== 1 ? "s" : ""} applied automatically.`,
           duration: 5000,
         });
 
@@ -701,17 +760,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         setShowQualityMetrics(true);
       } else {
         const statusText = enhancementSucceeded
-          ? 'Schema validated, converted, and enhanced. No suggestions to apply.'
-          : 'Schema validated and converted. No suggestions to apply.';
+          ? "Schema validated, converted, and enhanced. No suggestions to apply."
+          : "Schema validated and converted. No suggestions to apply.";
 
-        toast.success('Automated workflow complete!', {
+        toast.success("Automated workflow complete!", {
           description: statusText,
           duration: 4000,
         });
       }
     } catch (error) {
-      console.error('Automated workflow error:', error);
-      toast.error('Workflow encountered an error');
+      console.error("Automated workflow error:", error);
+      toast.error("Workflow encountered an error");
     } finally {
       setAutoWorkflowRunning(false);
     }
@@ -726,7 +785,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   // Handle suggestion apply/undo
   const handleSuggestionAction = useCallback(
-    async (suggestion: any, action: 'apply' | 'undo'): Promise<number | undefined> => {
+    async (
+      suggestion: any,
+      action: "apply" | "undo",
+    ): Promise<number | undefined> => {
       try {
         const scoreDelta = await applySuggestion(suggestion, action);
         return scoreDelta;
@@ -734,9 +796,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         throw error;
       }
     },
-    [applySuggestion]
+    [applySuggestion],
   );
-
 
   // Undo function
   const undo = useCallback(() => {
@@ -749,9 +810,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setHistoryIndex(previousIndex);
       isUndoRedoAction.current = false;
 
-      toast.success('Undone');
+      toast.success("Undone");
     } else {
-      toast.info('Nothing to undo');
+      toast.info("Nothing to undo");
     }
   }, [history, historyIndex]);
 
@@ -766,16 +827,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setHistoryIndex(nextIndex);
       isUndoRedoAction.current = false;
 
-      toast.success('Redone');
+      toast.success("Redone");
     } else {
-      toast.info('Nothing to redo');
+      toast.info("Nothing to redo");
     }
   }, [history, historyIndex]);
 
   const handleFileUpload = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,.yaml,.yml,.xml';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,.yaml,.yml,.xml";
 
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -786,12 +847,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         const content = event.target?.result as string;
         setEditorValue(content);
 
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        if (ext === 'yaml' || ext === 'yml') setFormat('yaml');
-        else if (ext === 'xml') setFormat('xml');
-        else setFormat('json');
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "yaml" || ext === "yml") setFormat("yaml");
+        else if (ext === "xml") setFormat("xml");
+        else setFormat("json");
 
-        toast.success('File uploaded');
+        toast.success("File uploaded");
       };
       reader.readAsText(file);
     };
@@ -802,14 +863,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'Enter') {
+      if (e.ctrlKey && e.key === "Enter") {
         e.preventDefault();
         handleConvert();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleConvert]);
 
   return (
@@ -832,7 +893,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           />
         </div>
         <p className="mt-1.5 text-xs text-neutral-400 dark:text-neutral-500">
-          Give your schema a descriptive name — used across all generated code files.
+          Give your schema a descriptive name — used across all generated code
+          files.
         </p>
       </div>
 
@@ -848,7 +910,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
         {/* Right: Next: Form Builder Button - Shows after AI Enhancement completes, or immediately if schema was loaded from a saved template */}
         {onNextToFormBuilder &&
-          (isLoadedFromTemplate || (stages.length > 0 && stages[3]?.status === 'complete')) && (
+          (isLoadedFromTemplate ||
+            (stages.length > 0 && stages[3]?.status === "complete")) && (
             <div className="flex items-end">
               <Button
                 onClick={onNextToFormBuilder}
@@ -871,42 +934,42 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                 Processing Mode
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
-                {workflowMode === 'manual'
-                  ? 'Run each step individually — validate, convert, and enhance at your own pace.'
-                  : 'Let the system handle all stages automatically: validate, convert, enhance, and apply.'}
+                {workflowMode === "manual"
+                  ? "Run each step individually — validate, convert, and enhance at your own pace."
+                  : "Let the system handle all stages automatically: validate, convert, enhance, and apply."}
               </p>
             </div>
             {/* Animated toggle pill */}
             <div
               className="relative flex items-center p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 cursor-pointer select-none"
-              style={{ minWidth: '168px' }}
+              style={{ minWidth: "168px" }}
             >
               <motion.span
                 layout
                 layoutId="mode-pill"
                 className="absolute top-1 bottom-1 rounded-full bg-white dark:bg-neutral-700 shadow"
                 style={{
-                  width: '50%',
-                  left: workflowMode === 'manual' ? '4px' : 'calc(50% - 4px)',
+                  width: "50%",
+                  left: workflowMode === "manual" ? "4px" : "calc(50% - 4px)",
                 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
               <button
-                onClick={() => setWorkflowMode('manual')}
+                onClick={() => setWorkflowMode("manual")}
                 className={`relative z-10 flex-1 text-center text-xs font-medium py-1.5 rounded-full transition-colors ${
-                  workflowMode === 'manual'
-                    ? 'text-neutral-900 dark:text-white'
-                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                  workflowMode === "manual"
+                    ? "text-neutral-900 dark:text-white"
+                    : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
                 }`}
               >
                 Manual
               </button>
               <button
-                onClick={() => setWorkflowMode('automated')}
+                onClick={() => setWorkflowMode("automated")}
                 className={`relative z-10 flex-1 text-center text-xs font-medium py-1.5 rounded-full transition-colors ${
-                  workflowMode === 'automated'
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                  workflowMode === "automated"
+                    ? "text-purple-600 dark:text-purple-400"
+                    : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
                 }`}
               >
                 Automated
@@ -921,16 +984,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
-              {workflowMode === 'manual' ? 'Actions' : 'Automated Workflow'}
+              {workflowMode === "manual" ? "Actions" : "Automated Workflow"}
             </h3>
             <Badge
               variant="outline"
               className="text-xs font-medium px-2.5 py-1 border-neutral-200 dark:border-neutral-700 text-neutral-500"
             >
-              {workflowMode === 'manual' ? 'Manual' : 'Automated'}
+              {workflowMode === "manual" ? "Manual" : "Automated"}
             </Badge>
           </div>
-          {workflowMode === 'manual' ? (
+          {workflowMode === "manual" ? (
             <div className="flex gap-2 flex-wrap">
               {/* 1. Validate Input Format */}
               <Button
@@ -1017,7 +1080,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   style={{ zIndex: 0 }}
                 />
 
-                <div className="grid grid-cols-4 gap-0 relative" style={{ zIndex: 1 }}>
+                <div
+                  className="grid grid-cols-4 gap-0 relative"
+                  style={{ zIndex: 1 }}
+                >
                   {/* Step 1: Validate */}
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-white dark:bg-neutral-800 border-2 border-neutral-300 dark:border-neutral-600 flex items-center justify-center mb-2 shadow-sm">
@@ -1104,7 +1170,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
               {/* Info Notice */}
               <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">
-                This workflow automatically processes your schema through all stages. Monitor progress through status notifications.
+                This workflow automatically processes your schema through all
+                stages. Monitor progress through status notifications.
               </p>
             </div>
           )}
@@ -1115,7 +1182,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       <div className="flex-1 flex gap-4 min-h-[800px] relative">
         {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
         <Card
-          className={`flex flex-col gap-2 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-14'}`}
+          className={`flex flex-col gap-2 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? "w-48" : "w-14"}`}
         >
           {/* Expand/Collapse Toggle */}
           <button
@@ -1125,7 +1192,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {sidebarExpanded ? (
               <>
                 <ChevronLeft className="h-4 w-4 text-neutral-600 dark:text-neutral-300 flex-shrink-0" />
-                <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">Collapse</span>
+                <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                  Collapse
+                </span>
               </>
             ) : (
               <ChevronRight className="h-4 w-4 text-neutral-700 dark:text-neutral-200 flex-shrink-0" />
@@ -1139,8 +1208,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             variant="outline"
             size="sm"
             onClick={handleFileUpload}
-            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? 'Upload File' : undefined}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && "px-2"}`}
+            title={!sidebarExpanded ? "Upload File" : undefined}
           >
             <Upload className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Upload</span>}
@@ -1151,8 +1220,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             variant="outline"
             size="sm"
             onClick={() => setShowTreeView(!showTreeView)}
-            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? 'Schema Navigator' : undefined}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && "px-2"}`}
+            title={!sidebarExpanded ? "Schema Navigator" : undefined}
           >
             <TreePine className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Navigator</span>}
@@ -1164,11 +1233,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               variant="outline"
               size="sm"
               onClick={() => setShowSuggestions(true)}
-              className={`w-full justify-start gap-3 h-10 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && 'px-2'}`}
-              title={!sidebarExpanded ? 'View AI Suggestions' : undefined}
+              className={`w-full justify-start gap-3 h-10 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && "px-2"}`}
+              title={!sidebarExpanded ? "View AI Suggestions" : undefined}
             >
               <Sparkles className="h-4 w-4 flex-shrink-0 text-purple-600" />
-              {sidebarExpanded && <span className="text-sm">AI Suggestions</span>}
+              {sidebarExpanded && (
+                <span className="text-sm">AI Suggestions</span>
+              )}
               <Badge className="absolute -top-1 -right-1 bg-purple-600 text-white px-1.5 py-0.5 text-xs">
                 {suggestions.length}
               </Badge>
@@ -1195,11 +1266,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               variant="outline"
               size="sm"
               onClick={() => setShowQualityMetrics(true)}
-              className={`w-full justify-start gap-3 h-10 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/20 relative ${!sidebarExpanded && 'px-2'}`}
-              title={!sidebarExpanded ? `Quality Score: ${qualityMetrics.qualityScore}` : undefined}
+              className={`w-full justify-start gap-3 h-10 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/20 relative ${!sidebarExpanded && "px-2"}`}
+              title={
+                !sidebarExpanded
+                  ? `Quality Score: ${qualityMetrics.qualityScore}`
+                  : undefined
+              }
             >
               <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
-              {sidebarExpanded && <span className="text-sm">Quality Score</span>}
+              {sidebarExpanded && (
+                <span className="text-sm">Quality Score</span>
+              )}
               <Badge className="absolute -top-1 -right-1 bg-green-600 text-white px-1.5 py-0.5 text-xs font-bold">
                 {qualityMetrics.qualityScore}
               </Badge>
@@ -1214,8 +1291,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             size="sm"
             onClick={undo}
             disabled={historyIndex <= 0}
-            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? 'Undo' : undefined}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && "px-2"}`}
+            title={!sidebarExpanded ? "Undo" : undefined}
           >
             <Undo2 className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Undo</span>}
@@ -1227,8 +1304,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             size="sm"
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? 'Redo' : undefined}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && "px-2"}`}
+            title={!sidebarExpanded ? "Redo" : undefined}
           >
             <Redo2 className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Redo</span>}
@@ -1243,7 +1320,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
                 <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                  Input{' '}
+                  Input{" "}
                   <span className="text-neutral-400 dark:text-neutral-500 font-normal">
                     ({format.toUpperCase()})
                   </span>
@@ -1253,15 +1330,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             <CardContent className="flex-1 p-0">
               <Editor
                 height="100%"
-                language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
+                language={
+                  format === "xml" ? "xml" : format === "yaml" ? "yaml" : "json"
+                }
                 value={editorValue}
                 onChange={handleEditorChange}
                 theme="vs-dark"
                 onMount={(editor, monaco) => {
                   // Add keyboard shortcuts
                   editor.addAction({
-                    id: 'enhance-schema',
-                    label: 'Enhance Schema with AI',
+                    id: "enhance-schema",
+                    label: "Enhance Schema with AI",
                     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
                     run: () => {
                       if (!enhanceLoading && displaySchema) {
@@ -1271,19 +1350,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   });
 
                   editor.addAction({
-                    id: 'format-document',
-                    label: 'Format Document',
+                    id: "format-document",
+                    label: "Format Document",
                     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
                     run: () => {
-                      editor.getAction('editor.action.formatDocument')?.run();
+                      editor.getAction("editor.action.formatDocument")?.run();
                     },
                   });
 
                   editor.addAction({
-                    id: 'validate-input',
-                    label: 'Validate Input',
+                    id: "validate-input",
+                    label: "Validate Input",
                     keybindings: [
-                      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV,
+                      monaco.KeyMod.CtrlCmd |
+                        monaco.KeyMod.Shift |
+                        monaco.KeyCode.KeyV,
                     ],
                     run: () => {
                       if (!validateLoading) {
@@ -1295,9 +1376,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
-                  lineNumbers: 'on',
+                  lineNumbers: "on",
                   scrollBeyondLastLine: false,
-                  wordWrap: 'on',
+                  wordWrap: "on",
                   automaticLayout: true,
                 }}
               />
@@ -1310,10 +1391,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-2 h-2 rounded-full transition-colors ${displaySchema ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${displaySchema ? "bg-green-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
                   />
                   <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                    JSON Schema{' '}
+                    JSON Schema{" "}
                     <span className="text-neutral-400 dark:text-neutral-500 font-normal">
                       (Output)
                     </span>
@@ -1338,7 +1419,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                     readOnly: true,
                     minimap: { enabled: false },
                     fontSize: 14,
-                    lineNumbers: 'on',
+                    lineNumbers: "on",
                     scrollBeyondLastLine: false,
                   }}
                 />
@@ -1395,16 +1476,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       <AnimatePresence>
         {showTreeView && displaySchema && (
           <motion.div
-            initial={{ x: '100%' }}
+            initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25 }}
             className="fixed right-0 top-0 bottom-0 w-96 bg-white dark:bg-neutral-900 shadow-2xl z-50 overflow-auto"
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold">Schema Navigator</h3>
-                <Button variant="ghost" size="sm" onClick={() => setShowTreeView(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTreeView(false)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>

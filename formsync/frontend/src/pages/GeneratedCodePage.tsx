@@ -119,12 +119,20 @@ export const GeneratedCodePage: React.FC = () => {
         setIsLoading(true);
         try {
           // Fetch schema
-          const response = await fetch(`/schema/${schemaId}`);
+          // Note: In a real env, use env var. Assuming localhost:3000 based on EditorPage usage.
+          const response = await fetch(
+            `http://localhost:3000/schema/${schemaId}`,
+          );
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
-          // Extract the content field from the DB record
-          const schema = schemaData.content;
+          // Ideally schemaData is the schema object or has content.
+          // Based on EditorPage: "content: currentSchema", so the API likely returns the DB record.
+          // Let's assume schemaData.content is the actual schema or schemaData itself if it IS the schema.
+          // EditorPage saves: { name, description, content, ... }
+          // So we likely need schemaData.content
+
+          const schema = schemaData.content || schemaData;
 
           // Generate code
           const result = await generationService.generateAll(schema);
@@ -150,32 +158,10 @@ export const GeneratedCodePage: React.FC = () => {
           setIsLoading(false);
         }
       } else if (!localState && !schemaId) {
-        // Check sessionStorage for schema passed from BuilderPage
-        const storedSchema = sessionStorage.getItem("formsync_builder_schema");
-        if (storedSchema) {
-          try {
-            const schema = JSON.parse(storedSchema);
-            const result = await generationService.generateAll(schema);
-            if (result.success && result.data) {
-              setLocalState({
-                generatedCode: { ...MOCK_CODE, ...result.data },
-                schema: schema,
-              });
-            } else {
-              setLocalState({ generatedCode: MOCK_CODE, schema });
-            }
-          } catch {
-            setLocalState({
-              generatedCode: MOCK_CODE,
-              schema: { name: "Demo Schema", content: {} },
-            });
-          }
-        } else {
-          setLocalState({
-            generatedCode: MOCK_CODE,
-            schema: { name: "Demo Schema", content: {} },
-          });
-        }
+        setLocalState({
+          generatedCode: MOCK_CODE,
+          schema: { name: "Demo Schema", content: {} },
+        });
       }
     };
 
