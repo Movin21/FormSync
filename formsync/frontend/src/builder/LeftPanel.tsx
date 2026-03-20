@@ -16,7 +16,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useBuilder, createField, collectAllFieldKeys } from '../context/BuilderContext';
+import { useBuilder, createField, collectAllFieldKeys, type CreateFieldOptions } from '../context/BuilderContext';
 import { FieldModel, FieldType } from '../types';
 import {
     LucideIcon,
@@ -36,11 +36,12 @@ import {
     Calculator,
     Folder,
     GripVertical,
+    Table2,
 } from 'lucide-react';
 
 // ─── Palette Config ───────────────────────────────────────────────────────────
 
-type PaletteEntry = { type: FieldType; label: string; Icon: LucideIcon };
+type PaletteEntry = { type: FieldType; label: string; Icon: LucideIcon; repeaterAsTable?: boolean };
 type PaletteGroup = { title: string; fields: PaletteEntry[] };
 
 const PALETTE_GROUPS: PaletteGroup[] = [
@@ -67,6 +68,7 @@ const PALETTE_GROUPS: PaletteGroup[] = [
         fields: [
             { type: 'group', label: 'Group', Icon: Folder },
             { type: 'repeater', label: 'Repeater', Icon: List },
+            { type: 'repeater', label: 'Repeating table', Icon: Table2, repeaterAsTable: true },
         ],
     },
     {
@@ -259,12 +261,12 @@ export const LeftPanel: React.FC = () => {
     const unlistedFields = state.form.fields.filter((f) => !state.form.layout.order.includes(f.id));
     const displayFields = [...orderedFields, ...unlistedFields];
 
-    const handleAdd = (type: FieldType) => {
+    const handleAdd = (type: FieldType, palette?: CreateFieldOptions) => {
         const stepIndex = isWizardMode ? state.activeStep : undefined;
         const existingKeys = collectAllFieldKeys(state.form.fields);
         dispatch({
             type: 'ADD_FIELD',
-            payload: createField(type, stepIndex, existingKeys),
+            payload: createField(type, stepIndex, existingKeys, palette),
         });
     };
 
@@ -314,8 +316,15 @@ export const LeftPanel: React.FC = () => {
                                     {group.title}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.2rem' }}>
-                                    {group.fields.map(({ type, label, Icon }) => (
-                                        <PaletteButton key={type} label={label} Icon={Icon} onClick={() => handleAdd(type)} />
+                                    {group.fields.map(({ type, label, Icon, repeaterAsTable }) => (
+                                        <PaletteButton
+                                            key={`${type}-${label}`}
+                                            label={label}
+                                            Icon={Icon}
+                                            onClick={() =>
+                                                handleAdd(type, repeaterAsTable ? { repeaterAsTable: true } : undefined)
+                                            }
+                                        />
                                     ))}
                                 </div>
                             </div>
