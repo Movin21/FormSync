@@ -280,6 +280,48 @@ input[type="checkbox"].field-input {
   color: var(--color-muted);
 }
 
+/* Rich text: toolbar + contenteditable (export uses document.execCommand) */
+.richtext-wrap {
+  width: 100%;
+}
+.richtext-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.richtext-tool {
+  min-width: 2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--field-border-color, var(--color-border));
+  border-radius: var(--border-radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.richtext-tool:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+.richtext-editable.field-input {
+  min-height: 6rem;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.richtext-editable[contenteditable="true"]:empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+  pointer-events: none;
+}
+canvas.field-input.signature-pad-canvas {
+  display: block;
+  min-height: 10rem;
+  border: 2px solid var(--field-border-color, var(--color-border)) !important;
+  background: var(--field-bg-color, var(--color-input-bg)) !important;
+  border-radius: var(--border-radius);
+  cursor: crosshair;
+}
+
 .field-help-text {
   display: block;
   font-size: 0.875rem;
