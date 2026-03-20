@@ -54,8 +54,10 @@ const PaletteButton: React.FC<{
     onClick: () => void;
 }> = ({ label, Icon, onClick }) => (
     <button
+        type="button"
         onClick={onClick}
         title={`Add ${label}`}
+        aria-label={`Add ${label} field`}
         style={{
             display: 'flex',
             alignItems: 'center',
@@ -92,51 +94,63 @@ const PaletteButton: React.FC<{
 
 const FieldTreeItem: React.FC<{
     field: FieldModel;
-    isSelected: boolean;
-    onSelect: () => void;
-    onRemove: () => void;
+    selectedFieldId: string | null;
+    onSelect: (id: string) => void;
+    onRemove: (id: string) => void;
     indent?: number;
-}> = ({ field, isSelected, onSelect, onRemove, indent = 0 }) => (
-    <div>
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.28rem 0.5rem',
-                paddingLeft: `${0.5 + indent * 1}rem`,
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: '0.72rem',
-                background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
-                border: `1px solid ${isSelected ? 'rgba(99,102,241,0.3)' : 'transparent'}`,
-                marginBottom: 1,
-            }}
-            onClick={onSelect}
-        >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
-                {field.label}
-            </span>
-            <span style={{ fontSize: '0.6rem', color: 'rgba(0,0,0,0.4)', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
-            <button
-                onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                title="Remove"
+}> = ({ field, selectedFieldId, onSelect, onRemove, indent = 0 }) => {
+    const isSelected = selectedFieldId === field.id;
+    return (
+        <div>
+            <div
                 style={{
-                    padding: '0 4px', lineHeight: '16px', fontSize: '0.85rem',
-                    border: 'none', background: 'transparent', color: 'rgba(0,0,0,0.4)',
-                    cursor: 'pointer', flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.28rem 0.5rem',
+                    paddingLeft: `${0.5 + indent * 1}rem`,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
+                    border: `1px solid ${isSelected ? 'rgba(99,102,241,0.3)' : 'transparent'}`,
+                    marginBottom: 1,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(0,0,0,0.4)'; }}
+                onClick={() => onSelect(field.id)}
             >
-                ×
-            </button>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
+                    {field.label}
+                </span>
+                <span style={{ fontSize: '0.6rem', color: 'rgba(0,0,0,0.4)', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRemove(field.id); }}
+                    title="Remove"
+                    aria-label={`Remove ${field.label}`}
+                    style={{
+                        padding: '0 4px', lineHeight: '16px', fontSize: '0.85rem',
+                        border: 'none', background: 'transparent', color: 'rgba(0,0,0,0.4)',
+                        cursor: 'pointer', flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(0,0,0,0.4)'; }}
+                >
+                    ×
+                </button>
+            </div>
+            {field.children?.map((child) => (
+                <FieldTreeItem
+                    key={child.id}
+                    field={child}
+                    selectedFieldId={selectedFieldId}
+                    onSelect={onSelect}
+                    onRemove={onRemove}
+                    indent={indent + 1}
+                />
+            ))}
         </div>
-        {field.children?.map((child) => (
-            <FieldTreeItem key={child.id} field={child} isSelected={false} onSelect={() => { }} onRemove={() => { }} indent={indent + 1} />
-        ))}
-    </div>
-);
+    );
+};
 
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
@@ -218,9 +232,9 @@ export const LeftPanel: React.FC = () => {
                                 <FieldTreeItem
                                     key={field.id}
                                     field={field}
-                                    isSelected={state.selectedFieldId === field.id}
-                                    onSelect={() => dispatch({ type: 'SELECT_FIELD', payload: field.id })}
-                                    onRemove={() => handleRemove(field.id)}
+                                    selectedFieldId={state.selectedFieldId}
+                                    onSelect={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
+                                    onRemove={handleRemove}
                                 />
                             ))
                         )}
