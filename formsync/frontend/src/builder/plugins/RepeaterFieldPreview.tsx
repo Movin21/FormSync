@@ -37,6 +37,85 @@ const InnerFieldRow: React.FC<{ label: string; type: string }> = ({ label, type 
 
 const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
     const children = field.children ?? [];
+    const isTable = (field.ui as { displayMode?: string } | undefined)?.displayMode === 'table';
+
+    if (isTable && children.length > 0) {
+        return (
+            <div
+                style={{
+                    border: '1px solid #c7d2fe',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    background: '#f5f3ff',
+                    pointerEvents: 'none',
+                }}
+            >
+                <div
+                    style={{
+                        background: '#ede9fe',
+                        padding: '0.5rem 0.75rem',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        color: '#5b21b6',
+                        borderBottom: '1px solid #c4b5fd',
+                    }}
+                >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <ClipboardList size={15} strokeWidth={2} aria-hidden />
+                        <span>{field.label} (table)</span>
+                    </span>
+                </div>
+                <div style={{ overflowX: 'auto', padding: '0.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+                        <thead>
+                            <tr style={{ background: '#faf5ff' }}>
+                                {children.map((c) => (
+                                    <th
+                                        key={c.id}
+                                        style={{
+                                            border: '1px solid #ddd6fe',
+                                            padding: '0.35rem 0.5rem',
+                                            textAlign: 'left',
+                                            fontWeight: 600,
+                                            color: '#4c1d95',
+                                        }}
+                                    >
+                                        {c.label}
+                                    </th>
+                                ))}
+                                <th style={{ border: '1px solid #ddd6fe', padding: '0.35rem', width: '4rem' }} />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {children.map((c) => (
+                                    <td key={c.id} style={{ border: '1px solid #e9d5ff', padding: '0.35rem', color: '#9ca3af', fontStyle: 'italic' }}>
+                                        {c.type}
+                                    </td>
+                                ))}
+                                <td style={{ border: '1px solid #e9d5ff', padding: '0.35rem', textAlign: 'right', fontSize: '0.65rem', color: '#7c3aed' }}>
+                                    Remove
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div
+                    style={{
+                        padding: '0.5rem 0.75rem',
+                        borderTop: '1px dashed #c4b5fd',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        color: '#7c3aed',
+                        fontWeight: 500,
+                    }}
+                >
+                    + Add row
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
