@@ -322,6 +322,29 @@ input[type="checkbox"].field-input {
   border: 0;
 }
 
+/* Repeater with ui.displayMode === "table" (generated App) */
+.repeater-data-table {
+  border: 1px solid var(--color-border);
+}
+.repeater-data-table th,
+.repeater-data-table td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: middle;
+}
+.repeater-data-table thead th {
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-border));
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.repeater-table-cell .field-item {
+  margin-bottom: 0;
+}
+.repeater-table-actions {
+  text-align: right;
+}
+
 /* Grouped fields — theme-aware fieldset */
 .field-group {
   border: 1px solid var(--color-border);
