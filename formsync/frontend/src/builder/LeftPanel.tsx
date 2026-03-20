@@ -1,7 +1,42 @@
 import React, { useState } from 'react';
+import {
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    arrayMove,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useBuilder, createField, collectAllFieldKeys } from '../context/BuilderContext';
 import { FieldModel, FieldType } from '../types';
-import { LucideIcon, Type, Mail, Lock, Hash, AlignLeft, Calendar, ChevronDown, CheckSquare, List, Upload, FileText, PenLine, Search, Calculator, Folder } from 'lucide-react';
+import {
+    LucideIcon,
+    Type,
+    Mail,
+    Lock,
+    Hash,
+    AlignLeft,
+    Calendar,
+    ChevronDown,
+    CheckSquare,
+    List,
+    Upload,
+    FileText,
+    PenLine,
+    Search,
+    Calculator,
+    Folder,
+    GripVertical,
+} from 'lucide-react';
 
 // ─── Palette Config ───────────────────────────────────────────────────────────
 
@@ -98,7 +133,9 @@ const FieldTreeItem: React.FC<{
     onSelect: (id: string) => void;
     onRemove: (id: string) => void;
     indent?: number;
-}> = ({ field, selectedFieldId, onSelect, onRemove, indent = 0 }) => {
+    /** Drag handle shown only on root row (indent 0) in Layers */
+    dragHandle?: React.ReactNode;
+}> = ({ field, selectedFieldId, onSelect, onRemove, indent = 0, dragHandle }) => {
     const isSelected = selectedFieldId === field.id;
     return (
         <div>
@@ -118,6 +155,7 @@ const FieldTreeItem: React.FC<{
                 }}
                 onClick={() => onSelect(field.id)}
             >
+                {indent === 0 && dragHandle ? dragHandle : null}
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
                     {field.label}
                 </span>
@@ -152,11 +190,68 @@ const FieldTreeItem: React.FC<{
     );
 };
 
+const SortableRootFieldBlock: React.FC<{
+    field: FieldModel;
+    selectedFieldId: string | null;
+    onSelect: (id: string) => void;
+    onRemove: (id: string) => void;
+}> = ({ field, selectedFieldId, onSelect, onRemove }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: field.id,
+    });
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.88 : 1,
+    };
+    const handle = (
+        <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2px',
+                border: 'none',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'grab',
+                flexShrink: 0,
+                touchAction: 'none',
+            }}
+        >
+            <GripVertical size={14} strokeWidth={2} aria-hidden />
+        </button>
+    );
+    return (
+        <div ref={setNodeRef} style={style}>
+            <FieldTreeItem
+                field={field}
+                selectedFieldId={selectedFieldId}
+                onSelect={onSelect}
+                onRemove={onRemove}
+                indent={0}
+                dragHandle={handle}
+            />
+        </div>
+    );
+};
+
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
 export const LeftPanel: React.FC = () => {
     const { state, dispatch, isWizardMode } = useBuilder();
     const [tab, setTab] = useState<'palette' | 'tree'>('palette');
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
 
     const orderedFields = state.form.layout.order
         .map((id) => state.form.fields.find((f) => f.id === id))
@@ -175,6 +270,18 @@ export const LeftPanel: React.FC = () => {
 
     const handleRemove = (id: string) => {
         if (window.confirm('Remove this field?')) dispatch({ type: 'REMOVE_FIELD', payload: id });
+    };
+
+    const rootIds = displayFields.map((f) => f.id);
+
+    const handleLayersDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = rootIds.indexOf(active.id as string);
+        const newIndex = rootIds.indexOf(over.id as string);
+        if (oldIndex < 0 || newIndex < 0) return;
+        const nextOrder = arrayMove(rootIds, oldIndex, newIndex);
+        dispatch({ type: 'REORDER_FIELDS', payload: nextOrder });
     };
 
     const tabBtn = (active: boolean): React.CSSProperties => ({
@@ -228,15 +335,24 @@ export const LeftPanel: React.FC = () => {
                                 No fields yet.<br />Use the Palette tab.
                             </div>
                         ) : (
-                            displayFields.map((field) => (
-                                <FieldTreeItem
-                                    key={field.id}
-                                    field={field}
-                                    selectedFieldId={state.selectedFieldId}
-                                    onSelect={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
-                                    onRemove={handleRemove}
-                                />
-                            ))
+                            <>
+                                <p style={{ fontSize: '0.62rem', color: 'rgba(0,0,0,0.45)', marginBottom: '0.5rem', lineHeight: 1.35 }}>
+                                    Drag the grip to reorder top-level fields. Canvas and export order match this list.
+                                </p>
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLayersDragEnd}>
+                                    <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+                                        {displayFields.map((field) => (
+                                            <SortableRootFieldBlock
+                                                key={field.id}
+                                                field={field}
+                                                selectedFieldId={state.selectedFieldId}
+                                                onSelect={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
+                                                onRemove={handleRemove}
+                                            />
+                                        ))}
+                                    </SortableContext>
+                                </DndContext>
+                            </>
                         )}
                     </div>
                 )}
