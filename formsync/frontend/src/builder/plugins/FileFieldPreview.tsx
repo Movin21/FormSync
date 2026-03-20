@@ -1,4 +1,5 @@
 import React from 'react';
+import { FolderUp } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
 
 const FileFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
@@ -21,7 +22,9 @@ const FileFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 pointerEvents: 'none',
             }}
         >
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📁</div>
+            <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'center', color: '#2563eb' }}>
+                <FolderUp size={28} strokeWidth={1.75} aria-hidden />
+            </div>
             <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
                 {multiple ? 'Drop files here or click to browse' : 'Drop a file here or click to browse'}
             </div>
