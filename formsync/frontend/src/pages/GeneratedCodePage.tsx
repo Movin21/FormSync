@@ -277,6 +277,7 @@ export const GeneratedCodePage: React.FC = () => {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
               schema: schemaData,
+              ...(stash.form && { formModel: stash.form }),
             });
             toast.success("Code generated successfully");
           } else {
