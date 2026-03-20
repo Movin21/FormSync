@@ -228,6 +228,11 @@ body {
   font-size: 0.95rem;
 }
 
+.form-validation-summary.form-submit-success {
+  border-color: color-mix(in srgb, #16a34a 45%, transparent);
+  background: color-mix(in srgb, #16a34a 14%, transparent);
+}
+
 /* Field Styling */
 .field-item {
   margin-bottom: 1.5rem;
