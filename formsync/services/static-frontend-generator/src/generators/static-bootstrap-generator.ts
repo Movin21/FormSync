@@ -265,7 +265,7 @@ function generateBootstrapField(
   <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
   <div class="table-responsive">
     <table class="table table-bordered align-middle mb-0 fs-repeater-data-table">
-      <thead><tr>${th}<th scope="col" class="text-end" style="width:6rem">Actions</th></tr></thead>
+      <thead class="table-light"><tr>${th}<th scope="col" class="text-end" style="width:6rem">Actions</th></tr></thead>
       <tbody class="repeater-rows">
         <tr class="repeater-row table-light" data-row-index="0">
           ${tdTemplate}
@@ -594,6 +594,8 @@ function buildFormBody(formModel: FormModel, domIdByKey: Map<string, string>): s
 
 function generateThemeCss(formModel: FormModel): string {
   const { colors, typography, radius } = formModel.theme;
+  const inputBg = colors.inputBackground ?? "#ffffff";
+  const muted = colors.muted ?? "#6c757d";
   return `/* Theme derived from FormModel */
 :root {
   --bs-primary: ${colors.primary};
@@ -601,6 +603,8 @@ function generateThemeCss(formModel: FormModel): string {
   --bs-body-color: ${colors.text};
   --bs-border-color: ${colors.border};
   --fs-surface: ${colors.surface};
+  --fs-input-bg: ${inputBg};
+  --fs-muted: ${muted};
   --fs-form-radius: ${radius}px;
   --fs-font-family: ${typography.fontFamily};
   --fs-base-font-size: ${typography.baseFontSize}px;
@@ -613,15 +617,40 @@ body {
   color: var(--bs-body-color);
 }
 
+/* Readable column width (Bootstrap .container is still wide at lg/xl) */
+.fs-page-inner {
+  max-width: min(100%, 40rem);
+}
+
 .fs-form-panel {
   background-color: var(--fs-surface);
   border: 1px solid color-mix(in srgb, var(--bs-border-color) 65%, transparent);
   border-radius: var(--fs-form-radius);
 }
 
-.form-control:focus {
+/* BS5 defaults .form-control background to --bs-body-bg; use theme inputBackground so fields contrast with page + panel */
+.form-control,
+.form-select {
+  background-color: var(--fs-input-bg);
+  color: var(--bs-body-color);
+  border-color: var(--bs-border-color);
+}
+
+.form-control::placeholder {
+  color: color-mix(in srgb, var(--fs-muted) 85%, transparent);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--fs-input-bg);
+  color: var(--bs-body-color);
   border-color: ${colors.primary};
   box-shadow: 0 0 0 0.2rem color-mix(in srgb, ${colors.primary} 25%, transparent);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  background-color: color-mix(in srgb, var(--fs-input-bg) 88%, var(--fs-muted));
 }
 `;
 }
@@ -981,10 +1010,12 @@ export function generateStaticBootstrapFiles(
 </head>
 <body>
   <main class="container py-4">
-    <div id="form-status" class="text-danger mb-3" role="status" aria-live="polite"></div>
-    <h1 class="h3 mb-2">${escapeHtml(title)}</h1>
-    ${description ? `<p class="text-muted mb-4">${escapeHtml(description)}</p>` : ""}
-    ${bodyInner}
+    <div class="fs-page-inner mx-auto">
+      <div id="form-status" class="text-danger mb-3" role="status" aria-live="polite"></div>
+      <h1 class="h3 mb-2">${escapeHtml(title)}</h1>
+      ${description ? `<p class="text-muted mb-4">${escapeHtml(description)}</p>` : ""}
+      ${bodyInner}
+    </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   <script src="js/app.js"></script>
