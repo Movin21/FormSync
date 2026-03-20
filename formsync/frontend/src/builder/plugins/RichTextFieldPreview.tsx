@@ -1,5 +1,19 @@
 import React from 'react';
+import { Link2, List, ListOrdered } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
+
+const toolbarBtn: React.CSSProperties = {
+    fontSize: '0.78rem',
+    padding: '2px 6px',
+    border: '1px solid #d1d5db',
+    borderRadius: 3,
+    background: '#fff',
+    color: '#374151',
+    fontFamily: 'inherit',
+    fontWeight: 600,
+    cursor: 'default',
+    lineHeight: 1.2,
+};
 
 const RichTextFieldPreview: React.FC<FieldPluginProps> = ({ field }) => (
     <div
@@ -10,35 +24,40 @@ const RichTextFieldPreview: React.FC<FieldPluginProps> = ({ field }) => (
             pointerEvents: 'none',
         }}
     >
-        {/* Mock toolbar */}
         <div
             style={{
                 display: 'flex',
+                alignItems: 'center',
                 gap: '0.25rem',
                 padding: '0.4rem 0.75rem',
                 borderBottom: '1px solid #e5e7eb',
                 background: '#f9fafb',
             }}
         >
-            {['B', 'I', 'U', '—', '≡', '≡≡', '—', '🔗'].map((t, i) => (
-                <span
-                    key={i}
-                    style={{
-                        fontSize: '0.78rem',
-                        padding: '2px 5px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: 3,
-                        background: '#fff',
-                        color: '#374151',
-                        fontFamily: 'serif',
-                        cursor: 'default',
-                    }}
-                >
-                    {t}
-                </span>
-            ))}
+            <span style={toolbarBtn}>B</span>
+            <span style={toolbarBtn}>I</span>
+            <span style={toolbarBtn}>U</span>
+            <span
+                style={{
+                    width: 1,
+                    alignSelf: 'stretch',
+                    minHeight: 14,
+                    background: '#e5e7eb',
+                    margin: '0 2px',
+                    flexShrink: 0,
+                }}
+                aria-hidden
+            />
+            <span style={{ ...toolbarBtn, display: 'inline-flex', alignItems: 'center', padding: '2px 5px' }} aria-hidden>
+                <List size={12} strokeWidth={2} />
+            </span>
+            <span style={{ ...toolbarBtn, display: 'inline-flex', alignItems: 'center', padding: '2px 5px' }} aria-hidden>
+                <ListOrdered size={12} strokeWidth={2} />
+            </span>
+            <span style={{ ...toolbarBtn, display: 'inline-flex', alignItems: 'center', padding: '2px 5px' }} aria-hidden>
+                <Link2 size={12} strokeWidth={2} />
+            </span>
         </div>
-        {/* Mock content area */}
         <div
             style={{
                 padding: '0.75rem',
