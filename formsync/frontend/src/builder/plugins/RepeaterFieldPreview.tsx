@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardList } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
 
 // A small inner field preview row used inside the repeater section
@@ -58,7 +59,12 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                     borderBottom: '1px solid #c4b5fd',
                 }}
             >
-                📋 {field.label} — Item 1
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <ClipboardList size={15} strokeWidth={2} aria-hidden />
+                    <span>
+                        {field.label} — Item 1
+                    </span>
+                </span>
             </div>
 
             {/* Child fields preview */}
