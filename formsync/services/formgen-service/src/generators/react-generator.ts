@@ -419,14 +419,18 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
     syncSignaturePads(e.currentTarget);
     const errs = validateForm(e.currentTarget, FIELD_RULES);
     setErrors(errs);
-    const errorCount = Object.keys(errs).length;
+    const errorKeys = Object.keys(errs);
+    const errorCount = errorKeys.length;
     if (errorCount > 0) {
+      const firstKey = errorKeys[0];
+      const firstDetail = firstKey ? errs[firstKey] : "";
       setStatusMessage(
         errorCount === 1
-          ? '1 error found. Please review the highlighted field.'
-          : errorCount + ' errors found. Please review the highlighted fields.'
+          ? firstDetail || "Please fix the highlighted field."
+          : errorCount +
+              " errors found. " +
+              (firstDetail || "Please review the highlighted fields."),
       );
-      const firstKey = Object.keys(errs)[0];
       if (firstKey) {
         let focusEl: HTMLElement | null = null;
         const els = e.currentTarget.elements;
@@ -449,6 +453,7 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
       }
       return;
     }
+    setErrors({});
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     /* FORMSYNC_API_SUBMIT_START */
@@ -459,9 +464,11 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
 
   return (
     <div className="form-container">
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {statusMessage}
-      </div>
+      {statusMessage ? (
+        <div className="form-validation-summary" role="alert" aria-live="polite" aria-atomic="true">
+          {statusMessage}
+        </div>
+      ) : null}
       <h1 className="form-title">${escapeHtml(title)}</h1>
       ${description ? `<p className="form-description">${escapeHtml(description)}</p>` : ""}
       ${formBody}
