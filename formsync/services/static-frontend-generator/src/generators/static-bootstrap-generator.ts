@@ -225,7 +225,12 @@ function collectAllFields(fields: FieldModel[]): FieldModel[] {
   return result;
 }
 
-function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, string>, ctx?: RepeaterCtx): string {
+function generateBootstrapField(
+  field: FieldModel,
+  domIdByKey: Map<string, string>,
+  ctx?: RepeaterCtx,
+  tableCell = false,
+): string {
   const { key, type, label, required, ui } = field;
   const nameAttr = ctx ? escapeHtml(indexedName(ctx.repeaterRoot, field, ctx.rowIdx)) : escapeHtml(key);
   const domId = domIdFor(field, domIdByKey, ctx);
@@ -240,6 +245,41 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
     if (children.some((c) => c.type === "repeater")) {
       return `<div class="border rounded p-3 mb-4"><p class="text-muted small mb-0">Nested repeaters are not supported in this export.</p></div>`;
     }
+    const displayMode =
+      field.ui && typeof field.ui === "object" && (field.ui as Record<string, unknown>)["displayMode"] === "table"
+        ? "table"
+        : "cards";
+
+    if (displayMode === "table" && children.length > 0) {
+      const th = children
+        .map(
+          (c) =>
+            `<th scope="col">${escapeHtml(c.label)}${c.required ? ' <span class="text-danger" aria-hidden="true">*</span>' : ""}</th>`,
+        )
+        .join("");
+      const tdTemplate = children
+        .map((c) => `<td class="align-middle">${generateBootstrapField(c, domIdByKey, { repeaterRoot: field.key, rowIdx: 0 }, true)}</td>`)
+        .join("");
+      const rootEsc = escapeHtml(field.key);
+      return `<fieldset class="border rounded p-3 mb-4" data-fs-repeater="${rootEsc}">
+  <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle mb-0 fs-repeater-data-table">
+      <thead><tr>${th}<th scope="col" class="text-end" style="width:6rem">Actions</th></tr></thead>
+      <tbody class="repeater-rows">
+        <tr class="repeater-row table-light" data-row-index="0">
+          ${tdTemplate}
+          <td class="text-end align-middle">
+            <button type="button" class="btn btn-sm btn-outline-secondary fs-repeater-remove" style="display:none">Remove</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add">Add row</button>
+</fieldset>`;
+    }
+
     const inner = children
       .map((c) => generateBootstrapField(c, domIdByKey, { repeaterRoot: field.key, rowIdx: 0 }))
       .join("\n");
@@ -258,7 +298,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
 
   if (type === "group") {
     const children = field.children || [];
-    const inner = children.map((c) => generateBootstrapField(c, domIdByKey, ctx)).join("\n");
+    const inner = children.map((c) => generateBootstrapField(c, domIdByKey, ctx, tableCell)).join("\n");
     return `<fieldset class="border rounded p-3 mb-4">
   <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
   ${inner}
@@ -275,7 +315,12 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
   switch (type) {
     case "textarea":
     case "richtext":
-      return wrapControl(label, required, domId, helpText, `<textarea
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<textarea
           class="form-control"
           name="${nameAttr}"
           id="${domId}"
@@ -285,7 +330,9 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaRequired}
           ${ariaDescribedBy}
           ${autoCompleteAttr}
-        ></textarea>`);
+        ></textarea>`,
+        tableCell,
+      );
     case "select": {
       const options = field.constraints?.enum || [];
       return wrapControl(
@@ -305,10 +352,13 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           <option value="">${escapeHtml(placeholder) || "Select..."}</option>
           ${options.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("\n")}
         </select>`,
+        tableCell,
       );
     }
-    case "checkbox":
-      return `<div class="form-check mb-3">
+    case "checkbox": {
+      const chkMb = tableCell ? "mb-1" : "mb-3";
+      const chkLbl = tableCell ? "form-check-label visually-hidden" : "form-check-label";
+      return `<div class="form-check ${chkMb}">
   <input
     class="form-check-input"
     type="checkbox"
@@ -318,12 +368,13 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
     ${ariaRequired}
     ${ariaDescribedBy}
   />
-  <label class="form-check-label" for="${domId}">
+  <label class="${chkLbl}" for="${domId}">
     ${escapeHtml(label)}${required ? ' <span class="text-danger" aria-hidden="true">*</span>' : ""}
   </label>
-  ${helpText ? `<div id="${domId}-help" class="form-text">${escapeHtml(helpText)}</div>` : ""}
+  ${helpText && !tableCell ? `<div id="${domId}-help" class="form-text">${escapeHtml(helpText)}</div>` : ""}
   <div id="${domId}-error" class="invalid-feedback d-block" role="alert"></div>
 </div>`;
+    }
     case "file": {
       const xui = ui?.["x-ui"];
       const accept = xui?.accept ? `accept="${escapeHtml(String(xui.accept))}"` : "";
@@ -344,6 +395,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaRequired}
           ${ariaDescribedBy}
         />`,
+        tableCell,
       );
     }
     case "signature": {
@@ -355,6 +407,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
         helpText,
         `<canvas id="${domId}_canvas" width="400" height="160" class="border rounded bg-white mb-2" style="max-width:100%;touch-action:none" data-fs-sig-target="${escapeHtml(hidId)}"></canvas>
         <input type="hidden" name="${nameAttr}" id="${escapeHtml(hidId)}" />`,
+        tableCell,
       );
     }
     case "typeahead": {
@@ -378,6 +431,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaDescribedBy}
         />
         <datalist id="${escapeHtml(dlId)}"></datalist>`,
+        tableCell,
       );
     }
     case "calculated": {
@@ -398,6 +452,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaRequired}
           ${ariaDescribedBy}
         />`,
+        tableCell,
       );
     }
     case "number": {
@@ -424,6 +479,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaDescribedBy}
           ${autoCompleteAttr}
         />`,
+        tableCell,
       );
     }
     case "text":
@@ -446,6 +502,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaDescribedBy}
           ${autoCompleteAttr}
         />`,
+        tableCell,
       );
     case "unknown":
     default:
@@ -464,6 +521,7 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
           ${ariaRequired}
           ${ariaDescribedBy}
         />`,
+        tableCell,
       );
   }
 }
@@ -474,13 +532,16 @@ function wrapControl(
   domId: string,
   helpText: string | undefined,
   control: string,
+  tableCell = false,
 ): string {
-  return `<div class="mb-3">
-  <label class="form-label" for="${domId}">
+  const labelClass = tableCell ? "form-label visually-hidden" : "form-label";
+  const wrapClass = tableCell ? "mb-1" : "mb-3";
+  return `<div class="${wrapClass}">
+  <label class="${labelClass}" for="${domId}">
     ${escapeHtml(label)}${required ? ' <span class="text-danger" aria-hidden="true">*</span>' : ""}
   </label>
   ${control}
-  ${helpText ? `<div id="${domId}-help" class="form-text">${escapeHtml(helpText)}</div>` : ""}
+  ${helpText && !tableCell ? `<div id="${domId}-help" class="form-text">${escapeHtml(helpText)}</div>` : ""}
   <div id="${domId}-error" class="invalid-feedback d-block" role="alert"></div>
 </div>`;
 }
