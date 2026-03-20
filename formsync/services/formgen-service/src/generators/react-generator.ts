@@ -555,7 +555,7 @@ function generateFieldComponent(
         <div style={{ overflowX: "auto" }}>
         <table className="repeater-data-table" style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.95rem" }}>
           <thead>
-            <tr>
+            <tr style={{ background: "#f1f5f9" }}>
               ${thCells}
               <th scope="col" className="text-end repeater-table-actions" style={{ width: "6rem" }}>Actions</th>
             </tr>
