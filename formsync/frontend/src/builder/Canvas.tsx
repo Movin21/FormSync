@@ -336,8 +336,12 @@ export const Canvas: React.FC = () => {
         dispatch({ type: 'SET_PREVIEW_VALUE', payload: { key, value } });
 
     return (
-        <div className="canvas-area" onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}>
-            <div className="form-preview" style={themeVars} onClick={(e) => e.stopPropagation()}>
+        <div
+            className="canvas-area"
+            style={themeVars}
+            onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}
+        >
+            <div className="form-preview" onClick={(e) => e.stopPropagation()}>
 
                 {/* ── Mode banner ─────────────────────────────────────────────── */}
                 <div style={{
