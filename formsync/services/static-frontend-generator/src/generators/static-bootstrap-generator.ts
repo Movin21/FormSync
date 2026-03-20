@@ -201,6 +201,33 @@ function relativeUnderRepeater(repeaterRoot: string, fieldKey: string): string {
   return fieldKey;
 }
 
+/** Inline styles for repeater fieldset / table from field.ui.styleOverrides. */
+function repeaterChromeStyleAttr(field: FieldModel): {
+  fieldset: string;
+  legend: string;
+  theadTr: string;
+  addBtn: string;
+} {
+  const o = field.ui?.styleOverrides as Record<string, string> | undefined;
+  const border = o?.borderColor ?? "#dee2e6";
+  const bg = o?.backgroundColor;
+  const lc = o?.labelColor;
+  const accent = o?.focusColor;
+  const fss = [`border:1px solid ${border}`, "border-radius:0.375rem", "padding:1rem"];
+  if (bg) fss.push(`background-color:${bg}`);
+  const fieldset = ` style="${fss.join(";")}"`;
+  const legend = lc ? ` style="color:${lc}"` : "";
+  const theadBg =
+    lc && bg
+      ? `color-mix(in srgb, ${lc} 12%, ${bg})`
+      : bg
+        ? `color-mix(in srgb, #64748b 8%, ${bg})`
+        : "#f8f9fa";
+  const theadTr = ` style="background:${theadBg}${lc ? `;color:${lc}` : ""}"`;
+  const addBtn = accent ? ` style="color:${accent};border-color:${accent}"` : "";
+  return { fieldset, legend, theadTr, addBtn };
+}
+
 /** Indexed name for repeater rows (matches React export). */
 function indexedName(repeaterRoot: string, field: FieldModel, rowIdx: number): string {
   const rel = relativeUnderRepeater(repeaterRoot, field.key);
@@ -245,12 +272,21 @@ function generateBootstrapField(
     if (children.some((c) => c.type === "repeater")) {
       return `<div class="border rounded p-3 mb-4"><p class="text-muted small mb-0">Nested repeaters are not supported in this export.</p></div>`;
     }
+    if (children.length === 0) {
+      const rc = repeaterChromeStyleAttr(field);
+      return `<fieldset class="mb-4"${rc.fieldset}>
+  <legend class="float-none w-auto px-2 fs-6 fw-semibold"${rc.legend}>${escapeHtml(label)}</legend>
+  <p class="text-muted small mb-2">Add child fields to this repeater in the FormSync builder, then re-export. Repeating tables expect one column per child field.</p>
+  <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Add child fields in the builder first">Add row</button>
+</fieldset>`;
+    }
     const displayMode =
       field.ui && typeof field.ui === "object" && (field.ui as Record<string, unknown>)["displayMode"] === "table"
         ? "table"
         : "cards";
 
     if (displayMode === "table" && children.length > 0) {
+      const rc = repeaterChromeStyleAttr(field);
       const th = children
         .map(
           (c) =>
@@ -261,11 +297,11 @@ function generateBootstrapField(
         .map((c) => `<td class="align-middle">${generateBootstrapField(c, domIdByKey, { repeaterRoot: field.key, rowIdx: 0 }, true)}</td>`)
         .join("");
       const rootEsc = escapeHtml(field.key);
-      return `<fieldset class="border rounded p-3 mb-4" data-fs-repeater="${rootEsc}">
-  <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
+      return `<fieldset class="mb-4"${rc.fieldset} data-fs-repeater="${rootEsc}">
+  <legend class="float-none w-auto px-2 fs-6 fw-semibold"${rc.legend}>${escapeHtml(label)}</legend>
   <div class="table-responsive">
     <table class="table table-bordered align-middle mb-0 fs-repeater-data-table">
-      <thead class="table-light"><tr>${th}<th scope="col" class="text-end" style="width:6rem">Actions</th></tr></thead>
+      <thead><tr${rc.theadTr}>${th}<th scope="col" class="text-end" style="width:6rem">Actions</th></tr></thead>
       <tbody class="repeater-rows">
         <tr class="repeater-row table-light" data-row-index="0">
           ${tdTemplate}
@@ -276,23 +312,24 @@ function generateBootstrapField(
       </tbody>
     </table>
   </div>
-  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add">Add row</button>
+  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add"${rc.addBtn}>Add row</button>
 </fieldset>`;
     }
 
+    const rc = repeaterChromeStyleAttr(field);
     const inner = children
       .map((c) => generateBootstrapField(c, domIdByKey, { repeaterRoot: field.key, rowIdx: 0 }))
       .join("\n");
     const rootEsc = escapeHtml(field.key);
-    return `<fieldset class="border rounded p-3 mb-4" data-fs-repeater="${rootEsc}">
-  <legend class="float-none w-auto px-2 fs-6 fw-semibold">${escapeHtml(label)}</legend>
+    return `<fieldset class="mb-4"${rc.fieldset} data-fs-repeater="${rootEsc}">
+  <legend class="float-none w-auto px-2 fs-6 fw-semibold"${rc.legend}>${escapeHtml(label)}</legend>
   <div class="repeater-rows">
     <div class="repeater-row border rounded p-3 mb-2 bg-light" data-row-index="0">
       ${inner}
     </div>
   </div>
   <button type="button" class="btn btn-sm btn-outline-secondary me-2 fs-repeater-remove" style="display:none">Remove row</button>
-  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add">Add row</button>
+  <button type="button" class="btn btn-sm btn-outline-primary fs-repeater-add"${rc.addBtn}>Add row</button>
 </fieldset>`;
   }
 
@@ -314,7 +351,6 @@ function generateBootstrapField(
 
   switch (type) {
     case "textarea":
-    case "richtext":
       return wrapControl(
         label,
         required,
@@ -333,6 +369,26 @@ function generateBootstrapField(
         ></textarea>`,
         tableCell,
       );
+    case "richtext": {
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<div class="richtext-wrap w-100">
+  <div class="richtext-toolbar btn-group flex-wrap mb-1" role="toolbar" aria-label="Formatting">
+    <button type="button" class="btn btn-sm btn-outline-secondary fs-richtext-cmd" data-cmd="bold" title="Bold"><strong>B</strong></button>
+    <button type="button" class="btn btn-sm btn-outline-secondary fs-richtext-cmd" data-cmd="italic" title="Italic"><em>I</em></button>
+    <button type="button" class="btn btn-sm btn-outline-secondary fs-richtext-cmd" data-cmd="underline" title="Underline"><span style="text-decoration:underline">U</span></button>
+    <button type="button" class="btn btn-sm btn-outline-secondary fs-richtext-cmd" data-cmd="insertUnorderedList" title="List">•</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary fs-richtext-cmd" data-cmd="insertOrderedList" title="Numbered">1.</button>
+  </div>
+  <div id="${domId}" class="form-control richtext-editable" contenteditable="true" ${placeholder ? `data-placeholder="${escapeHtml(placeholder)}"` : ""} ${ariaRequired} ${ariaDescribedBy}></div>
+  <input type="hidden" data-fs-richtext name="${nameAttr}" value="" />
+</div>`,
+        tableCell,
+      );
+    }
     case "select": {
       const options = field.constraints?.enum || [];
       return wrapControl(
@@ -405,7 +461,7 @@ function generateBootstrapField(
         required,
         domId,
         helpText,
-        `<canvas id="${domId}_canvas" width="400" height="160" class="border rounded bg-white mb-2" style="max-width:100%;touch-action:none" data-fs-sig-target="${escapeHtml(hidId)}"></canvas>
+        `<canvas id="${domId}_canvas" width="400" height="160" class="form-control signature-pad-canvas mb-2" style="max-width:100%;touch-action:none" data-fs-sig-target="${escapeHtml(hidId)}"></canvas>
         <input type="hidden" name="${nameAttr}" id="${escapeHtml(hidId)}" />`,
         tableCell,
       );
