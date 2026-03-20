@@ -419,6 +419,7 @@ function App() {
   const [, setFormTick] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [statusKind, setStatusKind] = useState<'error' | 'success'>('error');
 ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
 
   useEffect(() => {
@@ -477,6 +478,7 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
     if (errorCount > 0) {
       const firstKey = errorKeys[0];
       const firstDetail = firstKey ? errs[firstKey] : "";
+      setStatusKind("error");
       setStatusMessage(
         errorCount === 1
           ? firstDetail || "Please fix the highlighted field."
@@ -510,7 +512,8 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     /* FORMSYNC_API_SUBMIT_START */
-    setStatusMessage('');
+    setStatusKind("success");
+    setStatusMessage("Submitted successfully. Thanks — your response was recorded.");
     console.log('Form submitted:', data);
     /* FORMSYNC_API_SUBMIT_END */
   };
@@ -518,7 +521,16 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
   return (
     <div className="form-container">
       {statusMessage ? (
-        <div className="form-validation-summary" role="alert" aria-live="polite" aria-atomic="true">
+        <div
+          className={
+            statusKind === "success"
+              ? "form-validation-summary form-submit-success"
+              : "form-validation-summary"
+          }
+          role="alert"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {statusMessage}
         </div>
       ) : null}
