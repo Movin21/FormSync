@@ -209,32 +209,30 @@ export const BuilderLayout: React.FC = () => {
           <LeftPanel />
         </aside>
 
-        {/* ── Center: stepper → wizard bar → canvas ── */}
+        {/* ── Center: pipeline strip + wizard + canvas (single chrome band) ── */}
         <main className="builder-canvas-col">
-          {/* Progress stepper — contained in canvas column */}
-          <div className="canvas-stepper">
-            <FlowDiagram stages={stages} />
-          </div>
-
-          {/* Wizard controls + Undo on the same bar */}
-          <div className="canvas-toolbar">
-            <WizardControls />
-            <div className="canvas-toolbar-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => dispatch({ type: "UNDO" })}
-                disabled={!canUndo}
-                className="gap-1.5 text-neutral-500 h-7 px-2.5 text-xs"
-                title="Undo"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                Undo
-              </Button>
+          <div className="builder-canvas-header">
+            <div className="canvas-stepper" aria-label="Generation pipeline">
+              <FlowDiagram stages={stages} variant="strip" />
+            </div>
+            <div className="canvas-toolbar">
+              <WizardControls />
+              <div className="canvas-toolbar-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => dispatch({ type: "UNDO" })}
+                  disabled={!canUndo}
+                  className="gap-1.5 text-neutral-500 h-7 px-2.5 text-xs"
+                  title="Undo"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                  Undo
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Scrollable form canvas */}
           <div className="canvas-wrapper">
             <Canvas />
           </div>
