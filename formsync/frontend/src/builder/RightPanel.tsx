@@ -121,6 +121,26 @@ const ColorRow: React.FC<{ label: string; value: string; onChange: (v: string) =
     </div>
 );
 
+// ─── Generate Code footer (theme panel + field inspector) ───────────────────
+
+const GenerateCodeFooter: React.FC<{
+    onGenerate?: () => void;
+    isGenerating: boolean;
+}> = ({ onGenerate, isGenerating }) => (
+    <div className="panel-footer">
+        <button
+            type="button"
+            onClick={onGenerate}
+            disabled={isGenerating || !onGenerate}
+            className="btn-primary"
+            style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+            {isGenerating ? 'Generating…' : 'Generate Code'}
+        </button>
+    </div>
+);
+
 // ─── Right Panel ──────────────────────────────────────────────────────────────
 
 interface RightPanelProps {
@@ -230,17 +250,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </Group>
                 </div>
 
-                <div className="panel-footer">
-                    <button
-                        onClick={onGenerate}
-                        disabled={isGenerating || !onGenerate}
-                        className="btn-primary"
-                        style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                        {isGenerating ? 'Generating…' : 'Generate Code'}
-                    </button>
-                </div>
+                <GenerateCodeFooter onGenerate={onGenerate} isGenerating={isGenerating} />
             </div>
         );
     }
@@ -467,6 +477,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <small style={{ color: '#94a3b8', fontSize: '0.7rem', fontFamily: 'monospace' }}>id: {selectedField.id}</small>
                 </div>
             </div>
+
+            <GenerateCodeFooter onGenerate={onGenerate} isGenerating={isGenerating} />
         </div>
     );
 };
