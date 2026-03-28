@@ -492,6 +492,53 @@ canvas.field-input.signature-pad-canvas {
   flex-direction: column;
   gap: 0.25rem;
 }
+
+/* Wizard (generated React App — multi-step) */
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.wizard-footer-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.wizard-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.wizard-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.wizard-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.wizard-btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.wizard-btn:hover {
+  filter: brightness(1.05);
+}
 `;
 }
 
