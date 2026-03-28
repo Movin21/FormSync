@@ -34,6 +34,31 @@ export interface RepeaterCtx {
   rowIdx: number;
 }
 
+/** Wizard step slice — nested group/repeater children use stepIndex ?? 0. */
+function pruneFieldsForWizardStep(fields: FieldModel[], stepIdx: number): FieldModel[] {
+  const out: FieldModel[] = [];
+  for (const f of fields) {
+    if (f.type === "group" && f.children?.length) {
+      const children = pruneFieldsForWizardStep(f.children, stepIdx);
+      if (children.length > 0) {
+        out.push({ ...f, children });
+      }
+      continue;
+    }
+    if (f.type === "repeater" && f.children?.length) {
+      const children = pruneFieldsForWizardStep(f.children, stepIdx);
+      if (children.length > 0) {
+        out.push({ ...f, children });
+      }
+      continue;
+    }
+    if ((f.stepIndex ?? 0) === stepIdx) {
+      out.push(f);
+    }
+  }
+  return out;
+}
+
 function escapeHtml(text: string): string {
   const map: Record<string, string> = {
     "&": "&amp;",
@@ -91,7 +116,7 @@ function buildVanillaClientValidationSource(): string {
     }).join(".");
   }
 
-  function validateForm(form, rules) {
+  function collectNamedFieldErrors(root, rules) {
     var errs = {};
     var emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 
@@ -149,7 +174,7 @@ function buildVanillaClientValidationSource(): string {
       }
     }
 
-    var named = form.querySelectorAll("[name]");
+    var named = root.querySelectorAll("[name]");
     for (var i = 0; i < named.length; i++) {
       var el = named[i];
       var nm = el.name;
@@ -192,6 +217,15 @@ function buildVanillaClientValidationSource(): string {
     }
 
     return errs;
+  }
+
+  function validateForm(form, rules) {
+    return collectNamedFieldErrors(form, rules);
+  }
+
+  function validateFormScoped(form, rules, scope) {
+    if (!scope) return {};
+    return collectNamedFieldErrors(scope, rules);
   }
 `;
 }
@@ -620,22 +654,50 @@ function buildFormBody(formModel: FormModel, domIdByKey: Map<string, string>): s
   }
 
   if (layout.steps && layout.steps.length > 0) {
-    const sections = layout.steps.map((step, stepIdx) => {
-      const stepFields = orderedFields.filter(
-        (f) => f.stepIndex === stepIdx || f.stepIndex === undefined,
-      );
+    const stepCount = layout.steps.length;
+    const multiWizard = stepCount > 1;
+
+    if (stepCount === 1) {
+      const sole = layout.steps[0]!;
+      const stepFields = pruneFieldsForWizardStep(orderedFields, 0);
       const inner = stepFields.map((f) => generateBootstrapField(f, domIdByKey)).join("\n");
-      return `<div class="card mb-4">
+      return `<div class="fs-form-panel rounded shadow-sm p-4 mb-4">
+<form id="main-form" novalidate>
+  <div class="card mb-4" role="region" aria-label="${escapeHtml(sole.title)}">
+    <div class="card-header fw-semibold"><span class="badge bg-primary me-2">1</span>${escapeHtml(sole.title)}</div>
+    <div class="card-body">
+      ${inner}
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary"${btnStyle}>${escapeHtml(submitText)}</button>
+</form>
+</div>`;
+    }
+
+    const sections = layout.steps.map((step, stepIdx) => {
+      const stepFields = pruneFieldsForWizardStep(orderedFields, stepIdx);
+      const inner = stepFields.map((f) => generateBootstrapField(f, domIdByKey)).join("\n");
+      const hidePanel = stepIdx > 0 ? " d-none" : "";
+      return `<div class="card mb-4 fs-wizard-panel${hidePanel}" data-wizard-step="${stepIdx}" role="region" aria-label="${escapeHtml(step.title)}">
   <div class="card-header fw-semibold"><span class="badge bg-primary me-2">${stepIdx + 1}</span>${escapeHtml(step.title)}</div>
   <div class="card-body">
     ${inner}
   </div>
 </div>`;
     });
+
+    const footer = `<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-2 border-top">
+  <button type="button" class="btn btn-outline-secondary" id="wizard-prev" style="visibility:hidden">Previous</button>
+  <div class="d-flex gap-2 ms-auto">
+    <button type="button" class="btn btn-primary" id="wizard-next">Next</button>
+    <button type="submit" class="btn btn-primary" id="wizard-submit"${btnStyle} style="display:none">${escapeHtml(submitText)}</button>
+  </div>
+</div>`;
+
     return `<div class="fs-form-panel rounded shadow-sm p-4 mb-4">
 <form id="main-form" novalidate>
   ${sections.join("\n")}
-  <button type="submit" class="btn btn-primary"${btnStyle}>${escapeHtml(submitText)}</button>
+  ${footer}
 </form>
 </div>`;
   }
@@ -994,11 +1056,136 @@ const STATIC_RUNTIME_HELPERS = `
   }
 `;
 
+/** Vanilla wizard wiring when layout has more than one step (must run before submit listener). */
+function buildMultiWizardInstallJs(formModel: FormModel): string {
+  const steps = formModel.layout.steps;
+  if (!steps || steps.length <= 1) return "";
+
+  const n = steps.length;
+  return `
+  var WIZARD_STEP_COUNT = ${n};
+  var wizardStep = 0;
+  var wizardPanels = Array.prototype.slice.call(form.querySelectorAll(".fs-wizard-panel"));
+  var btnPrev = document.getElementById("wizard-prev");
+  var btnNext = document.getElementById("wizard-next");
+  var btnSubmit = document.getElementById("wizard-submit");
+
+  function focusActiveWizardPanel() {
+    var panel = form.querySelector('[data-wizard-step="' + wizardStep + '"]');
+    if (!panel) return;
+    var focusable = panel.querySelector(
+      'button:not([disabled]), [href], input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable && focusable.focus) {
+      focusable.focus({ preventScroll: true });
+    }
+  }
+
+  function applyWizardView() {
+    for (var pi = 0; pi < wizardPanels.length; pi++) {
+      if (pi === wizardStep) {
+        wizardPanels[pi].classList.remove("d-none");
+      } else {
+        wizardPanels[pi].classList.add("d-none");
+      }
+    }
+    if (btnPrev) {
+      btnPrev.style.visibility = wizardStep === 0 ? "hidden" : "visible";
+    }
+    if (btnNext && btnSubmit) {
+      var last = wizardStep >= WIZARD_STEP_COUNT - 1;
+      btnNext.hidden = last;
+      btnSubmit.hidden = !last;
+    }
+    focusActiveWizardPanel();
+  }
+
+  function tryWizardNext() {
+    syncRichTextEditors(form);
+    syncSignaturePads(form);
+    var scope = form.querySelector('[data-wizard-step="' + wizardStep + '"]');
+    var stepErrs = validateFormScoped(form, FIELD_RULES, scope);
+    var errorKeys = Object.keys(stepErrs);
+    if (errorKeys.length > 0) {
+      applyInlineFieldErrors(form, stepErrs);
+      var statusEl = document.getElementById("form-status");
+      var firstKey = errorKeys[0];
+      var firstMsg = firstKey ? stepErrs[firstKey] : "";
+      if (statusEl) {
+        statusEl.textContent =
+          errorKeys.length === 1
+            ? firstMsg || "Please fix the highlighted field."
+            : errorKeys.length +
+                " errors found. " +
+                (firstMsg || "Please review the highlighted fields.");
+        statusEl.className = "alert alert-danger mb-3";
+      }
+      var focusEl = null;
+      var els = form.elements;
+      for (var fi = 0; fi < els.length; fi++) {
+        var fe = els[fi];
+        if (fe.name === firstKey) {
+          focusEl = fe;
+          break;
+        }
+      }
+      var tk = firstKey ? templatePathFromIndexedPath(firstKey) : "";
+      var fallbackId = tk ? FIELD_ID_MAP[tk] : "";
+      var el = focusEl || (fallbackId ? document.getElementById(fallbackId) : null);
+      if (el && el.focus) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+    clearInlineFieldErrors(form);
+    var st = document.getElementById("form-status");
+    if (st) {
+      st.textContent = "";
+      st.className = "mb-3";
+    }
+    wizardStep += 1;
+    applyWizardView();
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener("click", function () {
+      if (wizardStep > 0) {
+        wizardStep -= 1;
+        applyWizardView();
+        var st2 = document.getElementById("form-status");
+        if (st2) {
+          st2.textContent = "";
+          st2.className = "mb-3";
+        }
+        clearInlineFieldErrors(form);
+      }
+    });
+  }
+  if (btnNext) {
+    btnNext.addEventListener("click", function () {
+      tryWizardNext();
+    });
+  }
+  applyWizardView();
+`;
+}
+
 function generateAppJs(
   formModel: FormModel,
   wiring?: StaticGeneratorWiring & { fieldTypesJson: string },
 ): string {
   const fieldMapLines = buildFieldIdMapJs(formModel);
+  const wizardInstallJs = buildMultiWizardInstallJs(formModel);
+  const wizardSubmitGateJs =
+    formModel.layout.steps && formModel.layout.steps.length > 1
+      ? `
+    if (wizardStep < WIZARD_STEP_COUNT - 1) {
+      tryWizardNext();
+      return;
+    }
+`
+      : "";
 
   const submitBody = wiring
     ? buildVanillaWiredSubmitReplacement({
@@ -1040,11 +1227,11 @@ ${buildVanillaClientValidationSource()}
   var FIELD_ID_MAP = {
 ${fieldMapLines}
   };
-
+${wizardInstallJs}
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     syncRichTextEditors(form);
-    syncSignaturePads(form);
+    syncSignaturePads(form);${wizardSubmitGateJs}
 
     var errs = validateForm(form, FIELD_RULES);
     var errorKeys = Object.keys(errs);
