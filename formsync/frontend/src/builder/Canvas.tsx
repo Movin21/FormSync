@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBuilder } from '../context/BuilderContext';
 import { FieldModel } from '../types';
 import { getPlugin } from './plugins/FieldPlugin';
-import { filterVisibleFields, evaluateCalcExpression } from '../lib/conditionEngine';
+import { filterVisibleFields, evaluateCalcExpression, pruneFieldsForWizardStep } from '../lib/conditionEngine';
 
 // ── Register all plugins ───────────────────────────────────────────────────────
 import './plugins/FileFieldPreview';
@@ -343,7 +343,7 @@ export const Canvas: React.FC = () => {
     const visibleFields = showPreview
         ? filterVisibleFields(orderedFields, previewValues, isWizardMode ? activeStep : undefined)
         : isWizardMode
-            ? orderedFields.filter((f) => f.stepIndex === undefined || f.stepIndex === activeStep)
+            ? pruneFieldsForWizardStep(orderedFields, activeStep)
             : orderedFields;
 
     const setPreviewValue = (key: string, value: unknown) =>
