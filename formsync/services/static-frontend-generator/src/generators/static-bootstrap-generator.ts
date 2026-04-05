@@ -116,6 +116,15 @@ function buildVanillaClientValidationSource(): string {
     }).join(".");
   }
 
+  function resolveRuleFromKeys(rules, tk) {
+    var r = rules[tk];
+    if (r) return r;
+    var parts = tk.split(".").filter(function (p) {
+      return p;
+    });
+    return parts.length ? rules[parts[parts.length - 1]] : undefined;
+  }
+
   function collectNamedFieldErrors(root, rules) {
     var errs = {};
     var emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
@@ -180,7 +189,7 @@ function buildVanillaClientValidationSource(): string {
       var nm = el.name;
       if (!nm) continue;
       var tk = templatePathFromIndexedPath(nm);
-      var rule = rules[tk];
+      var rule = resolveRuleFromKeys(rules, tk);
       if (!rule) continue;
 
       var tag = el.tagName.toLowerCase();
@@ -960,7 +969,6 @@ const STATIC_RUNTIME_HELPERS = `
       var rowsC = fs.querySelector('.repeater-rows');
       var template = rowsC ? rowsC.querySelector('.repeater-row') : null;
       var addBtn = fs.querySelector('.fs-repeater-add');
-      var remBtn = fs.querySelector('.fs-repeater-remove');
       if (!rowsC || !template || !addBtn) return;
 
       function refreshRemoveButtons() {
@@ -969,7 +977,10 @@ const STATIC_RUNTIME_HELPERS = `
           row.setAttribute('data-row-index', String(i));
           setRepeaterRowIndex(row, root, i);
         });
-        if (remBtn) remBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+        var show = rows.length > 1;
+        fs.querySelectorAll('.fs-repeater-remove').forEach(function (btn) {
+          btn.style.display = show ? 'inline-block' : 'none';
+        });
       }
 
       addBtn.addEventListener('click', function () {
@@ -982,14 +993,22 @@ const STATIC_RUNTIME_HELPERS = `
         refreshRemoveButtons();
       });
 
-      if (remBtn) {
-        remBtn.addEventListener('click', function () {
-          var rows = rowsC.querySelectorAll('.repeater-row');
-          if (rows.length <= 1) return;
-          rows[rows.length - 1].remove();
-          refreshRemoveButtons();
-        });
-      }
+      fs.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || typeof t.closest !== 'function') return;
+        var btn = t.closest('.fs-repeater-remove');
+        if (!btn || !fs.contains(btn)) return;
+        e.preventDefault();
+        var rows = rowsC.querySelectorAll('.repeater-row');
+        if (rows.length <= 1) return;
+        var row = btn.closest('.repeater-row');
+        if (!row || !rowsC.contains(row)) {
+          row = rows[rows.length - 1];
+        }
+        row.remove();
+        updateCalculatedFields(form);
+        refreshRemoveButtons();
+      });
 
       refreshRemoveButtons();
     });
