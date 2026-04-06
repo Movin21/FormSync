@@ -136,6 +136,13 @@ function templatePathFromIndexedPath(path: string): string {
   return path.split(".").filter((p) => !/^\\d+$/.test(p)).join(".");
 }
 
+function resolveRuleFromKeys(rules: Record<string, FieldRule>, tk: string): FieldRule | undefined {
+  let rule = rules[tk];
+  if (rule) return rule;
+  const parts = tk.split(".").filter(Boolean);
+  return parts.length ? rules[parts[parts.length - 1]] : undefined;
+}
+
 function collectNamedFieldErrors(root: Element, rules: Record<string, FieldRule>): Record<string, string> {
   const errs: Record<string, string> = {};
   const emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
@@ -200,7 +207,7 @@ function collectNamedFieldErrors(root: Element, rules: Record<string, FieldRule>
     const nm = (el as HTMLInputElement).name;
     if (!nm) return;
     const tk = templatePathFromIndexedPath(nm);
-    const rule = rules[tk];
+    const rule = resolveRuleFromKeys(rules, tk);
     if (!rule) return;
 
     const tag = el.tagName.toLowerCase();
