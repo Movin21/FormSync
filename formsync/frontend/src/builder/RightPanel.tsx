@@ -209,7 +209,6 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             type: 'UPDATE_FIELD',
             payload: { fieldId: selectedField.id, updates: { children: nextChildren } },
         });
-        dispatch({ type: 'SELECT_FIELD', payload: newChild.id });
     };
 
     const removeRepeaterColumn = (parentRepeaterId: string, childId: string) => {
@@ -467,7 +466,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                                         color: '#475569',
                                     }}
                                 >
-                                    + {label}
+                                    {label}
                                 </button>
                             ))}
                         </div>
