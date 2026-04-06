@@ -230,6 +230,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         });
     };
 
+    const updateRepeaterChildColumnHeader = (childId: string, label: string) => {
+        dispatch({ type: 'UPDATE_FIELD', payload: { fieldId: childId, updates: { label } } });
+    };
+
     const handleThemeUpdate = (updates: Partial<ThemeConfig>) =>
         dispatch({ type: 'UPDATE_THEME', payload: updates });
 
@@ -340,7 +344,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <>
                         <Divider title="Repeater columns" />
                         <p style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '0.5rem', lineHeight: 1.45 }}>
-                            Each field below is one table column (data table) or one block inside each repeated card (stacked cards). End users only add rows at runtime, not new columns.
+                            Each row below is one column. Edit the column header to set table headings and card labels. End users only add rows at runtime, not new columns.
                         </p>
                         {(selectedField.children ?? []).length === 0 ? (
                             <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.45rem' }}>No columns yet — add a field type below.</p>
@@ -399,28 +403,57 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                                                 <ChevronDown size={14} strokeWidth={2} aria-hidden />
                                             </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => dispatch({ type: 'SELECT_FIELD', payload: c.id })}
+                                        <div
                                             style={{
                                                 flex: 1,
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                padding: '0.25rem 0.35rem',
-                                                fontSize: '0.75rem',
-                                                border: 'none',
-                                                borderRadius: 4,
-                                                background: 'transparent',
-                                                cursor: 'pointer',
-                                                textAlign: 'left',
-                                                color: '#334155',
                                                 minWidth: 0,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.2rem',
                                             }}
                                         >
-                                            <span style={{ fontWeight: state.selectedFieldId === c.id ? 600 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
-                                            <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontFamily: 'monospace', flexShrink: 0, marginLeft: 6 }}>{c.type}</span>
-                                        </button>
+                                            <label className="control-label" style={{ fontSize: '0.58rem', marginBottom: 0, color: '#94a3b8' }}>
+                                                Column header
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <input
+                                                    type="text"
+                                                    className="control-input"
+                                                    value={c.label}
+                                                    onChange={(e) => updateRepeaterChildColumnHeader(c.id, e.target.value)}
+                                                    placeholder="Header label"
+                                                    aria-label={`Column header (${c.type})`}
+                                                    style={{
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                        fontSize: '0.78rem',
+                                                        padding: '0.35rem 0.45rem',
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    title="Open field settings (validation, placeholder…)"
+                                                    onClick={() => dispatch({ type: 'SELECT_FIELD', payload: c.id })}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        fontSize: '0.58rem',
+                                                        padding: '0.25rem 0.35rem',
+                                                        borderRadius: 4,
+                                                        border: '1px solid #e2e8f0',
+                                                        background:
+                                                            state.selectedFieldId === c.id ? 'rgba(99,102,241,0.1)' : '#f8fafc',
+                                                        color: '#64748b',
+                                                        fontFamily: 'monospace',
+                                                        cursor: 'pointer',
+                                                        maxWidth: '4.5rem',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}
+                                                >
+                                                    {c.type}
+                                                </button>
+                                            </div>
+                                        </div>
                                         <button
                                             type="button"
                                             title="Remove column"
