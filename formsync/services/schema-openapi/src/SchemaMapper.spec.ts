@@ -93,6 +93,37 @@ describe('SchemaMapper', () => {
         expect(numField?.constraints.max).toBe(1000000);
     });
 
+    it('should map array of objects to List with PascalCase item embeddable name', () => {
+        const payload: SchemaPayload = {
+            name: 'NewForm',
+            content: {
+                type: 'object',
+                properties: {
+                    repeatingTable: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                text: { type: 'string' },
+                                age: { type: 'integer' },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = mapper.map(payload);
+        const itemEntity = result.entities.find((e) => e.name === 'RepeatingTableItem');
+        expect(itemEntity).toBeDefined();
+        expect(itemEntity?.fields.map((f) => f.name).sort()).toEqual(['age', 'text']);
+
+        const root = result.entities.find((e) => e.name === 'NewForm');
+        const rtField = root?.fields.find((f) => f.name === 'repeatingTable');
+        expect(rtField?.type).toBe(DataType.LIST);
+        expect(rtField?.referenceType).toBe('RepeatingTableItem');
+    });
+
     it('should map nested objects to separate entities', () => {
         const payload: SchemaPayload = {
             name: 'Order',
