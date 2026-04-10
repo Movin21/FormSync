@@ -233,6 +233,101 @@ body {
   background: color-mix(in srgb, #16a34a 14%, transparent);
 }
 
+/* Success modal — shown after successful submit (demo or API) */
+.fs-success-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  animation: fs-success-fade-in 0.2s ease;
+}
+@keyframes fs-success-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fs-success-modal {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.75rem 1.5rem 1.25rem;
+  border-radius: calc(var(--border-radius) + 4px);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, #16a34a 15%, transparent);
+  text-align: center;
+  animation: fs-success-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fs-success-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.fs-success-modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+.fs-success-modal-icon {
+  width: 3rem;
+  height: 3rem;
+  color: #16a34a;
+}
+.fs-success-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.fs-success-modal-text {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+.fs-success-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.fs-success-modal-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.45);
+}
+.fs-success-modal-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Field Styling */
 .field-item {
   margin-bottom: 1.5rem;
