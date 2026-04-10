@@ -91,8 +91,16 @@ public class {{name}} {
     @Embedded
 {{else}}
 {{#eq type 'List'}}
+{{#if ../isRoot}}
+    @ElementCollection
+    @CollectionTable(name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}", joinColumns = @JoinColumn(name = "{{toSnakeCase ../name}}_id"))
+{{#unless (listElementIsEmbeddable referenceType)}}
+    @Column(name = "{{toSnakeCase name}}_val")
+{{/unless}}
+{{else}}
     @ElementCollection
     @CollectionTable(name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}")
+{{/if}}
 {{else}}
 {{#eq type 'Enum'}}
     @Enumerated(EnumType.STRING)
