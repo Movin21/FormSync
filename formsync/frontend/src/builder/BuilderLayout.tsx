@@ -4,7 +4,10 @@ import { LeftPanel } from "./LeftPanel";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
-import { useBuilder } from "../context/BuilderContext";
+import {
+  FORMSYNC_BUILDER_EXPORT_FORM_KEY,
+  useBuilder,
+} from "../context/BuilderContext";
 import { generationService } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
@@ -50,7 +53,15 @@ export const BuilderLayout: React.FC = () => {
       }
 
       if (state.schemaId) {
-        // Schema is saved — GeneratedCodePage can fetch it by ID
+        // Full-page navigation cannot carry router state — stash FormModel for Download All / bundle
+        try {
+          sessionStorage.setItem(
+            FORMSYNC_BUILDER_EXPORT_FORM_KEY,
+            JSON.stringify({ schemaId: state.schemaId, form: state.form }),
+          );
+        } catch {
+          /* ignore */
+        }
         window.location.href = `/generated?schemaId=${state.schemaId}`;
       } else {
         // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
@@ -61,7 +72,11 @@ export const BuilderLayout: React.FC = () => {
           sessionStorage.removeItem("formsync_schema_raw");
           if (result.success && result.data) {
             navigate("/generated", {
-              state: { generatedCode: result.data, schema },
+              state: {
+                generatedCode: result.data,
+                schema,
+                formModel: state.form,
+              },
             });
             return;
           }
