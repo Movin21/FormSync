@@ -8,7 +8,10 @@ import {
   FORMSYNC_BUILDER_EXPORT_FORM_KEY,
   useBuilder,
 } from "../context/BuilderContext";
-import { generationService } from "../services/generationService";
+import {
+  generationService,
+  type BackendLanguage,
+} from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -69,7 +72,14 @@ export const BuilderLayout: React.FC = () => {
         const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
         if (rawSchemaStr) {
           const schema = JSON.parse(rawSchemaStr);
-          const result = generationService.generateFromSchema(schema);
+          const storedBackend =
+            (sessionStorage.getItem(
+              "formsync_backend_language",
+            ) as BackendLanguage | null) ?? "springBoot";
+          const result = generationService.generateFromSchema(
+            schema,
+            storedBackend,
+          );
           sessionStorage.removeItem("formsync_schema_raw");
           if (result.success && result.data) {
             navigate("/generated", {
@@ -77,6 +87,7 @@ export const BuilderLayout: React.FC = () => {
                 generatedCode: result.data,
                 schema,
                 formModel: state.form,
+                backendLanguage: storedBackend,
               },
             });
             return;
