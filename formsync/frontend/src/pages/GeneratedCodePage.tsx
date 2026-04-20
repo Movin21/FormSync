@@ -142,6 +142,9 @@ export const GeneratedCodePage: React.FC = () => {
   const [backendLanguage, setBackendLanguage] =
     React.useState<BackendLanguage>(initialBackendLanguage);
 
+  /** Tracks backendLanguage for regenerating preview only when the user changes the selector. */
+  const prevBackendLanguageRef = React.useRef<BackendLanguage | null>(null);
+
   // Define stages for the progress bar
   const completionStages: any[] = [
     { name: "Enter Schema", status: "complete", progress: 100 },
@@ -167,7 +170,10 @@ export const GeneratedCodePage: React.FC = () => {
       if (schemaId && syncedFromBuilder) {
         setIsLoading(true);
         try {
-          const result = await generationService.generateAll(syncedFromBuilder);
+          const result = await generationService.generateAll(
+            syncedFromBuilder,
+            backendLanguage,
+          );
           if (result.success && result.data) {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
@@ -198,15 +204,17 @@ export const GeneratedCodePage: React.FC = () => {
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
-          const schema = schemaData.content || schemaData;
 
-          const result = await generationService.generateAll(schema);
+          const result = await generationService.generateAll(
+            schemaData,
+            backendLanguage,
+          );
 
           if (result.success && result.data) {
             const formModelFromExport = consumeBuilderExportForm(schemaId);
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
-              schema: schema,
+              schema: schemaData,
               ...(formModelFromExport && { formModel: formModelFromExport }),
             });
             toast.success("Code generated successfully");
@@ -235,6 +243,45 @@ export const GeneratedCodePage: React.FC = () => {
 
     void hydrate();
   }, [localState?.generatedCode, schemaId, location.state]);
+
+  React.useEffect(() => {
+    const schema = localState?.schema;
+    if (!schema || !localState?.generatedCode) return;
+
+    if (prevBackendLanguageRef.current === null) {
+      prevBackendLanguageRef.current = backendLanguage;
+      return;
+    }
+
+    if (prevBackendLanguageRef.current === backendLanguage) return;
+
+    prevBackendLanguageRef.current = backendLanguage;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await generationService.generateAll(schema, backendLanguage);
+        if (cancelled || !result.success || !result.data) return;
+        setLocalState((prev) =>
+          prev
+            ? {
+                ...prev,
+                generatedCode: {
+                  ...prev.generatedCode!,
+                  ...result.data!,
+                },
+              }
+            : prev,
+        );
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backendLanguage, localState?.schema, localState?.generatedCode]);
 
   if (isLoading) {
     return (
