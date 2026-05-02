@@ -25,10 +25,15 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { SchemaService } from './schema.service';
 import { ImportService } from './import.service';
+import { SrsParserService } from './srs-parser.service';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
@@ -45,7 +50,8 @@ import {
 export class SchemaController {
   constructor(
     private readonly schemaService: SchemaService,
-    private readonly importService: ImportService
+    private readonly importService: ImportService,
+    private readonly srsParserService: SrsParserService,
   ) {}
 
   @Post('convert')
@@ -103,6 +109,30 @@ export class SchemaController {
   @Post('validate')
   async validate(@Body() dto: ValidateSchemaDto) {
     return this.schemaService.validateSchema(dto);
+  }
+
+  /**
+   * POST /schema/parse-srs
+   * Upload a PDF or DOCX SRS document, extract text, and use AI to identify user stories
+   */
+  @Post('parse-srs')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Parse SRS document (PDF/DOCX) and extract user stories using AI', tags: ['srs', 'ai'] })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'User stories extracted successfully' })
+  @ApiResponse({ status: 400, description: 'Unsupported file type or extraction failed' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
+  async parseSrs(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file uploaded. Send a PDF or DOCX as multipart/form-data field "file".');
+    return this.srsParserService.parseFile(file.buffer, file.mimetype, file.originalname);
   }
 
   @Post('import-url')
