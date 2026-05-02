@@ -4,6 +4,8 @@
 
 // const API_BASE_URL = 'http://localhost:3000/api';
 
+export type BackendLanguage = "nodeExpress" | "springBoot";
+
 export interface GenerateRequest {
   schema: any;
   validatedSchema?: any;
@@ -82,16 +84,20 @@ export const generationService = {
     schema: any,
     backendLanguage: BackendLanguage = "springBoot",
   ): Promise<void> {
-    const response = await fetch(`${API_GATEWAY_URL}/bundle/generate-fullstack`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formModel, schema, backendLanguage }),
-    });
+    const response = await fetch(
+      `${API_GATEWAY_URL}/bundle/generate-fullstack`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formModel, schema, backendLanguage }),
+      },
+    );
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
       throw new Error(
-        errorBody?.error || `Fullstack bundle generation failed (${response.status})`,
+        errorBody?.error ||
+          `Fullstack bundle generation failed (${response.status})`,
       );
     }
 
