@@ -71,7 +71,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onNextToFormBuilder,
   stages = [],
   schemaFromBuilder,
-  isLoadedFromTemplate = false,
+  isLoadedFromTemplate: _isLoadedFromTemplate = false,
   isLoadedFromSrs = false,
 }) => {
   // State
