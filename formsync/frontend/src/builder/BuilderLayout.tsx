@@ -7,15 +7,21 @@ import { WizardControls } from "./WizardControls";
 import {
   FORMSYNC_BUILDER_EXPORT_FORM_KEY,
   useBuilder,
+  type BuilderExportPayload,
 } from "../context/BuilderContext";
 import {
   generationService,
   type BackendLanguage,
 } from "../services/generationService";
+import {
+  formModelToJsonSchema,
+  validateBuilderJsonSchema,
+} from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
 import { Button } from "../components/ui/button";
+import { toast } from "sonner";
 
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
@@ -46,7 +52,27 @@ export const BuilderLayout: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Form builder preview is the frontend — show this step complete as soon as generation starts
+      const synced = formModelToJsonSchema(
+        state.form,
+        state.baseJsonSchema ?? undefined,
+      );
+      const validation = validateBuilderJsonSchema(synced);
+      if (!validation.valid) {
+        toast.error("Schema validation failed", {
+          description: validation.errors.join("\n"),
+        });
+        setStages((prev) =>
+          prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
+        );
+        return;
+      }
+
+      try {
+        sessionStorage.setItem("formsync_schema_raw", JSON.stringify(synced));
+      } catch {
+        /* ignore */
+      }
+
       markStage("Frontend Generation", "complete");
 
       for (const name of ["Backend Generation", "DTO Generation"]) {
@@ -56,16 +82,39 @@ export const BuilderLayout: React.FC = () => {
       }
 
       if (state.schemaId) {
-        // Full-page navigation cannot carry router state — stash FormModel for Download All / bundle
+        const putRes = await fetch(`/schema/${state.schemaId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: synced }),
+        });
+        if (!putRes.ok) {
+          const errBody = await putRes.text();
+          toast.error("Failed to save schema", {
+            description: `${putRes.status}: ${errBody || putRes.statusText}`,
+          });
+          setStages((prev) =>
+            prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
+          );
+          return;
+        }
+
+        const exportPayload: BuilderExportPayload = {
+          schemaId: state.schemaId,
+          form: state.form,
+          syncedSchema: synced,
+        };
         try {
           sessionStorage.setItem(
             FORMSYNC_BUILDER_EXPORT_FORM_KEY,
-            JSON.stringify({ schemaId: state.schemaId, form: state.form }),
+            JSON.stringify(exportPayload),
           );
         } catch {
           /* ignore */
         }
-        window.location.href = `/generated?schemaId=${state.schemaId}`;
+
+        navigate(`/generated?schemaId=${state.schemaId}`, {
+          state: { schema: synced, formModel: state.form },
+        });
         return;
       } else {
         // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
@@ -97,9 +146,13 @@ export const BuilderLayout: React.FC = () => {
         window.location.href = "/generated";
         return;
       }
+
+      navigate("/generated", {
+        state: { schema: synced, formModel: state.form },
+      });
     } catch (e) {
       console.error(e);
-      alert(
+      toast.error(
         e instanceof Error
           ? e.message
           : "Generation failed. Please try again.",
