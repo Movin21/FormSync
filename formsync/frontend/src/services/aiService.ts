@@ -25,7 +25,7 @@ export async function fixSchemaWithAI(
   try {
     // TODO: Replace with your actual LLM API endpoint
     // Example: OpenAI, Anthropic, Google AI, etc.
-    const API_ENDPOINT = import.meta.env.VITE_AI_API_ENDPOINT || 'http://localhost:3000/api/ai/fix-schema';
+    const API_ENDPOINT = import.meta.env.VITE_AI_API_ENDPOINT || '/api/ai/fix-schema';
     const API_KEY = import.meta.env.VITE_AI_API_KEY;
 
     const response = await fetch(API_ENDPOINT, {

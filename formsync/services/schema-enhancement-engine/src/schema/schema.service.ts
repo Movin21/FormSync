@@ -9,19 +9,14 @@
  * - Caching with Redis
  */
 
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { ParserService } from "./parser.service";
-import { ValidatorService } from "./validator.service";
-import { SchemaQualityEngine } from "./schema-quality-engine";
-import { SchemaEnhancerService } from "./schema-enhancer.service";
-import { SchemaSuggestionEngine } from "./schema-suggestion.engine";
-import { SchemaSyntaxValidator } from "./schema-syntax-validator";
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { ParserService } from './parser.service';
+import { ValidatorService } from './validator.service';
+import { SchemaQualityEngine } from './schema-quality-engine';
+import { SchemaEnhancerService } from './schema-enhancer.service';
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { SchemaSyntaxValidator } from './schema-syntax-validator';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
@@ -31,7 +26,7 @@ import {
   ApplySuggestionDto,
   RecalculateQualityDto,
   SuggestNameDto,
-} from "./dto/schema.dto";
+} from './dto/schema.dto';
 
 @Injectable()
 export class SchemaService {
@@ -41,7 +36,7 @@ export class SchemaService {
     private readonly validatorService: ValidatorService,
     private readonly qualityEngine: SchemaQualityEngine,
     private readonly enhancerService: SchemaEnhancerService,
-    private readonly syntaxValidator: SchemaSyntaxValidator,
+    private readonly syntaxValidator: SchemaSyntaxValidator
   ) {}
 
   /**
@@ -80,9 +75,7 @@ export class SchemaService {
         totalChanges: result.changes.length,
         totalSuggestions: result.suggestions.length,
         appliedSuggestions: 0, // None applied yet
-        accessibilityCoverage: this.calculateAccessibilityCoverage(
-          result.enhancedSchema,
-        ),
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
       },
     };
   }
@@ -95,16 +88,16 @@ export class SchemaService {
   async applySuggestion(dto: ApplySuggestionDto) {
     // Validate required fields
     if (!dto.baseSchema) {
-      throw new Error("baseSchema is required");
+      throw new Error('baseSchema is required');
     }
     if (!dto.suggestion) {
-      throw new Error("suggestion is required");
+      throw new Error('suggestion is required');
     }
     if (!dto.allSuggestions || !Array.isArray(dto.allSuggestions)) {
-      throw new Error("allSuggestions must be an array");
+      throw new Error('allSuggestions must be an array');
     }
     if (!dto.aiChanges || !Array.isArray(dto.aiChanges)) {
-      throw new Error("aiChanges must be an array");
+      throw new Error('aiChanges must be an array');
     }
 
     const result = this.enhancerService.applySuggestion(
@@ -112,7 +105,7 @@ export class SchemaService {
       dto.suggestion,
       dto.allSuggestions,
       dto.aiChanges,
-      dto.action,
+      dto.action
     );
 
     return {
@@ -136,13 +129,11 @@ export class SchemaService {
       // Statistics
       metrics: {
         appliedSuggestions: dto.allSuggestions.filter((s) =>
-          s.id === dto.suggestion.id ? result.suggestion.applied : s.applied,
+          s.id === dto.suggestion.id ? result.suggestion.applied : s.applied
         ).length,
         totalSuggestions: dto.allSuggestions.length,
         totalChanges: dto.aiChanges.length,
-        accessibilityCoverage: this.calculateAccessibilityCoverage(
-          result.schema,
-        ),
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.schema),
       },
     };
   }
@@ -156,7 +147,7 @@ export class SchemaService {
     const quality = this.enhancerService.recalculateQuality(
       dto.baseSchema,
       dto.allSuggestions,
-      dto.aiChanges,
+      dto.aiChanges
     );
 
     return {
@@ -180,28 +171,21 @@ export class SchemaService {
       if (!obj?.properties) return;
       for (const [key, prop] of Object.entries(obj.properties)) {
         const property = prop as any;
-        const type = Array.isArray(property.type)
-          ? property.type[0]
-          : property.type;
+        const type = Array.isArray(property.type) ? property.type[0] : property.type;
 
         // Only count user-input fields (string, number, integer, boolean)
         // NOT structural fields (object, array)
-        const isUserInputField = [
-          "string",
-          "number",
-          "integer",
-          "boolean",
-        ].includes(type);
+        const isUserInputField = ['string', 'number', 'integer', 'boolean'].includes(type);
 
         if (isUserInputField) {
           total++;
-          if (property["x-accessibility"]?.label) {
+          if (property['x-accessibility']?.label) {
             covered++;
           }
         }
 
         // Recurse into nested objects
-        if (property.type === "object" && property.properties) {
+        if (property.type === 'object' && property.properties) {
           walk(property);
         }
       }
@@ -218,7 +202,7 @@ export class SchemaService {
   async clearCache(): Promise<{ success: boolean; message: string }> {
     return {
       success: true,
-      message: "Cache cleared successfully",
+      message: 'Cache cleared successfully',
     };
   }
 
@@ -237,14 +221,14 @@ export class SchemaService {
       } else if (dto.schemaContent) {
         try {
           const parsed =
-            typeof dto.schemaContent === "string"
+            typeof dto.schemaContent === 'string'
               ? JSON.parse(dto.schemaContent)
               : dto.schemaContent;
           if (parsed.properties) {
             fields = Object.keys(parsed.properties);
           }
           // Check if schema already has a meaningful title
-          if (parsed.title && parsed.title !== "Generated Schema") {
+          if (parsed.title && parsed.title !== 'Generated Schema') {
             schemaTitle = parsed.title;
           }
         } catch (e) {
@@ -256,39 +240,34 @@ export class SchemaService {
       if (schemaTitle) {
         return {
           suggestedName: schemaTitle,
-          confidence: "high",
+          confidence: 'high',
         };
       }
 
       if (!fields || fields.length === 0) {
         // No fields and no title - return generic name
         return {
-          suggestedName: "Generated Schema",
-          confidence: "low",
+          suggestedName: 'Generated Schema',
+          confidence: 'low',
         };
       }
 
       // Fallback: Pattern-based name generation
       const suggestedName = this.generateNameFromFields(fields);
 
-      console.log(
-        "[SchemaService] Suggested name:",
-        suggestedName,
-        "from fields:",
-        fields,
-      );
+      console.log('[SchemaService] Suggested name:', suggestedName, 'from fields:', fields);
 
       return {
         suggestedName,
-        confidence: "medium",
+        confidence: 'medium',
       };
     } catch (error) {
-      console.error("[SchemaService] Failed to suggest name:", error);
+      console.error('[SchemaService] Failed to suggest name:', error);
 
       // Fallback to generic name
       return {
-        suggestedName: "Generated Schema",
-        confidence: "low",
+        suggestedName: 'Generated Schema',
+        confidence: 'low',
       };
     }
   }
@@ -299,27 +278,15 @@ export class SchemaService {
   private generateNameFromFields(fields: string[]): string {
     // Common patterns and their schema names
     const patterns = [
-      {
-        keywords: ["user", "username", "password", "email"],
-        name: "User Registration",
-      },
-      { keywords: ["login", "username", "password"], name: "Login Form" },
-      {
-        keywords: ["contact", "phone", "email", "message"],
-        name: "Contact Form",
-      },
-      {
-        keywords: ["address", "street", "city", "zip", "state"],
-        name: "Address Information",
-      },
-      { keywords: ["payment", "card", "billing"], name: "Payment Information" },
-      { keywords: ["profile", "bio", "avatar"], name: "User Profile" },
-      {
-        keywords: ["order", "product", "quantity", "price"],
-        name: "Order Form",
-      },
-      { keywords: ["feedback", "rating", "comment"], name: "Feedback Form" },
-      { keywords: ["survey", "question", "answer"], name: "Survey Form" },
+      { keywords: ['user', 'username', 'password', 'email'], name: 'User Registration' },
+      { keywords: ['login', 'username', 'password'], name: 'Login Form' },
+      { keywords: ['contact', 'phone', 'email', 'message'], name: 'Contact Form' },
+      { keywords: ['address', 'street', 'city', 'zip', 'state'], name: 'Address Information' },
+      { keywords: ['payment', 'card', 'billing'], name: 'Payment Information' },
+      { keywords: ['profile', 'bio', 'avatar'], name: 'User Profile' },
+      { keywords: ['order', 'product', 'quantity', 'price'], name: 'Order Form' },
+      { keywords: ['feedback', 'rating', 'comment'], name: 'Feedback Form' },
+      { keywords: ['survey', 'question', 'answer'], name: 'Survey Form' },
     ];
 
     // Convert fields to lowercase for matching
@@ -328,7 +295,7 @@ export class SchemaService {
     // Find best matching pattern
     for (const pattern of patterns) {
       const matchCount = pattern.keywords.filter((kw) =>
-        lowerFields.some((f) => f.includes(kw)),
+        lowerFields.some((f) => f.includes(kw))
       ).length;
 
       // If at least 2 keywords match, use this pattern
@@ -342,7 +309,7 @@ export class SchemaService {
     const formatted = primaryField
       .split(/[_-]/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+      .join(' ');
 
     return `${formatted} Form`;
   }
@@ -354,23 +321,22 @@ export class SchemaService {
    */
   async validateSyntaxOnly(dto: ConvertSchemaDto) {
     // Check if input is already an enhanced schema (JSON only)
-    if (dto.format === "json" || !dto.format) {
+    if (dto.format === 'json' || !dto.format) {
       try {
         const parsed = JSON.parse(dto.input);
-        const metadata = parsed["x-formsync-metadata"];
+        const metadata = parsed['x-formsync-metadata'];
 
         if (metadata && metadata.enhanced === true) {
           const enhancementCount = metadata.enhancementCount || 1;
           const enhancedAt = metadata.enhancedAt
             ? new Date(metadata.enhancedAt).toLocaleString()
-            : "unknown time";
-          const model = metadata.model || "AI";
+            : 'unknown time';
+          const model = metadata.model || 'AI';
 
           throw new BadRequestException({
-            message: "Already enhanced schema detected",
-            error:
-              "This appears to be a schema that has already been enhanced by the system",
-            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? "s" : ""} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
             isEnhancedSchema: true,
             metadata: {
               enhancementCount,
@@ -389,15 +355,12 @@ export class SchemaService {
     }
 
     // Perform strict syntax validation (no conversion)
-    const syntaxValidation = this.syntaxValidator.validateSyntax(
-      dto.input,
-      dto.format,
-    );
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
 
     if (!syntaxValidation.valid) {
       // Return validation errors (don't throw, return structured response)
       throw new BadRequestException({
-        message: "Syntax validation failed",
+        message: 'Syntax validation failed',
         syntaxErrors: syntaxValidation.syntaxErrors,
         formatMismatch: syntaxValidation.formatMismatch,
         syntaxSuggestions: syntaxValidation.syntaxSuggestions,
@@ -407,7 +370,7 @@ export class SchemaService {
     // Syntax is valid - return success
     return {
       valid: true,
-      message: `Valid ${(dto.format || "detected").toUpperCase()} syntax`,
+      message: `Valid ${(dto.format || 'detected').toUpperCase()} syntax`,
     };
   }
 
@@ -418,19 +381,15 @@ export class SchemaService {
    */
   async quickFixSyntax(dto: ConvertSchemaDto) {
     // Validate the format
-    const format = dto.format || "json";
+    const format = dto.format || 'json';
 
     // Attempt quick fix (now async with AI fallback)
-    const result = await this.syntaxValidator.attemptQuickFix(
-      dto.input,
-      format as any,
-    );
+    const result = await this.syntaxValidator.attemptQuickFix(dto.input, format as any);
 
     if (!result.success) {
       throw new BadRequestException({
         message: result.message,
-        suggestion:
-          "Please fix the errors manually or use a more advanced fix option",
+        suggestion: 'Please fix the errors manually or use a more advanced fix option',
       });
     }
 
@@ -451,23 +410,22 @@ export class SchemaService {
    */
   async convertSchema(dto: ConvertSchemaDto) {
     // STEP 0: Check if input is already an enhanced schema (JSON only)
-    if (dto.format === "json" || !dto.format) {
+    if (dto.format === 'json' || !dto.format) {
       try {
         const parsed = JSON.parse(dto.input);
-        const metadata = parsed["x-formsync-metadata"];
+        const metadata = parsed['x-formsync-metadata'];
 
         if (metadata && metadata.enhanced === true) {
           const enhancementCount = metadata.enhancementCount || 1;
           const enhancedAt = metadata.enhancedAt
             ? new Date(metadata.enhancedAt).toLocaleString()
-            : "unknown time";
-          const model = metadata.model || "AI";
+            : 'unknown time';
+          const model = metadata.model || 'AI';
 
           throw new BadRequestException({
-            message: "Already enhanced schema detected",
-            error:
-              "This appears to be a schema that has already been enhanced by the system",
-            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? "s" : ""} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
             isEnhancedSchema: true,
             metadata: {
               enhancementCount,
@@ -487,15 +445,12 @@ export class SchemaService {
 
     // STEP 1: STRICT SYNTAX VALIDATION (NEW)
     // Validate syntax BEFORE any other processing
-    const syntaxValidation = this.syntaxValidator.validateSyntax(
-      dto.input,
-      dto.format,
-    );
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
 
     if (!syntaxValidation.valid) {
       // STOP processing on syntax errors
       throw new BadRequestException({
-        message: "Syntax validation failed",
+        message: 'Syntax validation failed',
         syntaxErrors: syntaxValidation.syntaxErrors,
         formatMismatch: syntaxValidation.formatMismatch,
         syntaxSuggestions: syntaxValidation.syntaxSuggestions,
@@ -507,30 +462,28 @@ export class SchemaService {
 
     if (dto.format) {
       // Use specified parser
-      console.log("[SchemaService] Looking for parser for format:", dto.format);
+      console.log('[SchemaService] Looking for parser for format:', dto.format);
       parser = this.parserService.getParserForFormat(dto.format);
-      console.log("[SchemaService] Found parser:", parser?.name);
+      console.log('[SchemaService] Found parser:', parser?.name);
     } else {
       // Auto-detect
-      console.log("[SchemaService] Auto-detecting format");
+      console.log('[SchemaService] Auto-detecting format');
       parser = this.parserService.detectParser(dto.input);
-      console.log("[SchemaService] Detected parser:", parser?.name);
+      console.log('[SchemaService] Detected parser:', parser?.name);
     }
 
     if (!parser) {
-      throw new BadRequestException(
-        "Could not detect format or find suitable parser",
-      );
+      throw new BadRequestException('Could not detect format or find suitable parser');
     }
 
-    console.log("[SchemaService] Using parser:", parser.name);
+    console.log('[SchemaService] Using parser:', parser.name);
     const result = await parser.parse(dto.input);
 
     if (!result.success) {
-      console.error("[SchemaService] Parsing failed:", result.errors);
-      console.error("[SchemaService] Input was:", dto.input.substring(0, 200));
+      console.error('[SchemaService] Parsing failed:', result.errors);
+      console.error('[SchemaService] Input was:', dto.input.substring(0, 200));
       throw new BadRequestException({
-        message: "Parsing failed",
+        message: 'Parsing failed',
         errors: result.errors,
       });
     }
@@ -550,24 +503,20 @@ export class SchemaService {
    */
   async validateSchema(dto: ValidateSchemaDto) {
     const validators = dto.validators
-      ? dto.validators
-          .map((name) => this.validatorService.getValidator(name))
-          .filter(Boolean)
+      ? dto.validators.map((name) => this.validatorService.getValidator(name)).filter(Boolean)
       : this.validatorService.getAllValidators();
 
     if (validators.length === 0) {
-      throw new BadRequestException("No validators found");
+      throw new BadRequestException('No validators found');
     }
 
     const results = await Promise.all(
-      validators.map((validator) => validator!.validate(dto.schema)),
+      validators.map((validator) => validator!.validate(dto.schema))
     );
 
     const allIssues = results.flatMap((r) => r.issues);
-    const errorCount = allIssues.filter((i) => i.severity === "error").length;
-    const warningCount = allIssues.filter(
-      (i) => i.severity === "warning",
-    ).length;
+    const errorCount = allIssues.filter((i) => i.severity === 'error').length;
+    const warningCount = allIssues.filter((i) => i.severity === 'warning').length;
 
     return {
       valid: errorCount === 0,
@@ -576,7 +525,7 @@ export class SchemaService {
         validators: results.length,
         errors: errorCount,
         warnings: warningCount,
-        info: allIssues.filter((i) => i.severity === "info").length,
+        info: allIssues.filter((i) => i.severity === 'info').length,
       },
     };
   }
@@ -592,7 +541,7 @@ export class SchemaService {
     });
     if (existing) {
       throw new ConflictException(
-        `A JSON template named "${dto.name}" already exists in your library.`,
+        `A JSON template named "${dto.name}" already exists in your library.`
       );
     }
 
@@ -601,9 +550,9 @@ export class SchemaService {
         name: dto.name,
         description: dto.description,
         content: dto.content,
-        sourceFormat: dto.sourceFormat || "json",
+        sourceFormat: dto.sourceFormat || 'json',
         tags: dto.tags || [],
-        status: dto.status || "draft",
+        status: dto.status || 'draft',
         userId: dto.userId,
         version: 1,
       },
@@ -618,7 +567,7 @@ export class SchemaService {
         schemaId: schema.id,
         version: 1,
         content: dto.content,
-        changeLog: "Initial version",
+        changeLog: 'Initial version',
       },
     });
 
@@ -635,7 +584,7 @@ export class SchemaService {
       include: {
         user: true,
         versions: {
-          orderBy: { version: "desc" },
+          orderBy: { version: 'desc' },
           take: 5,
         },
       },
@@ -666,7 +615,7 @@ export class SchemaService {
       include: {
         user: true,
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
     });
   }
 
@@ -725,6 +674,6 @@ export class SchemaService {
 
     await this.prisma.schema.delete({ where: { id } });
 
-    return { message: "Schema deleted successfully" };
+    return { message: 'Schema deleted successfully' };
   }
 }

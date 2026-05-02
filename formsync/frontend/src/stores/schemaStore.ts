@@ -85,10 +85,7 @@ interface SchemaStore {
 
   // Actions
   setCurrentSchema: (schema: any) => void;
-  convertSchema: (
-    input: string,
-    format?: "json" | "yaml" | "xml",
-  ) => Promise<any>;
+  convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<any>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
   applySuggestion: (
     suggestion: SchemaSuggestion,
@@ -167,9 +164,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       for (const newSugg of newSuggestions) {
         // Only skip if the suggestion is already in the merged list (i.e. already applied)
         const alreadyExists = mergedSuggestions.some(
-          (s) =>
-            s.path === newSugg.path &&
-            JSON.stringify(s.rule) === JSON.stringify(newSugg.rule),
+          (s) => s.path === newSugg.path && JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
         );
 
         if (!alreadyExists) {
@@ -184,8 +179,10 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       if (hasAppliedSuggestions && state.currentSchema) {
         // Recalculate quality with correct applied count
         try {
+          // Use currentSchema (user's editor state) as base so that
+          // manually-added metadata is scored, not just the AI output.
           const recalcResponse = await schemaApi.recalculateQuality({
-            baseSchema: data.enhancedSchema,
+            baseSchema: state.currentSchema || data.enhancedSchema,
             allSuggestions: mergedSuggestions,
             aiChanges: data.changes || [],
           });
@@ -200,30 +197,21 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             suggestions: mergedSuggestions,
             aiChanges: data.changes || [],
             qualityMetrics: {
-              qualityScore:
-                recalcData.quality?.score || recalcData.qualityScore,
-              qualityBreakdown:
-                recalcData.quality?.breakdown || recalcData.qualityBreakdown,
+              qualityScore: recalcData.quality?.score || recalcData.qualityScore,
+              qualityBreakdown: recalcData.quality?.breakdown || recalcData.qualityBreakdown,
               issues: recalcData.quality?.issues || recalcData.issues || [],
               explanations: data.explanations || [],
-              metrics: data.metrics || {
-                totalChanges: 0,
-                accessibilityCoverage: 0,
-              },
+              metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
               appliedSuggestionsCount:
                 recalcData.appliedSuggestionsCount ||
                 mergedSuggestions.filter((s) => s.applied).length,
-              totalSuggestionsCount:
-                recalcData.totalSuggestionsCount || mergedSuggestions.length,
+              totalSuggestionsCount: recalcData.totalSuggestionsCount || mergedSuggestions.length,
             },
             loading: false,
           });
           return;
         } catch (recalcError) {
-          console.warn(
-            "[SchemaStore] Failed to recalculate quality, using default:",
-            recalcError,
-          );
+          console.warn('[SchemaStore] Failed to recalculate quality, using default:', recalcError);
           // Fall through to default set below
         }
       }
@@ -247,12 +235,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
-          metrics: data.metrics || {
-            totalChanges: 0,
-            accessibilityCoverage: 0,
-          },
-          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied)
-            .length,
+          metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied).length,
           totalSuggestionsCount: mergedSuggestions.length,
         },
         loading: false,
@@ -321,8 +305,12 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
+      // Use currentSchema (editor state) as the base so that manually-added
+      // metadata (x-accessibility, descriptions, etc.) is included in scoring.
+      // Re-applying already-applied suggestions is a safe no-op because the
+      // suggestion engine preserves existing values.
       const response = await schemaApi.recalculateQuality({
-        baseSchema: state.baseSchema,
+        baseSchema: state.currentSchema || state.baseSchema,
         allSuggestions: state.suggestions,
         aiChanges: state.aiChanges,
       });

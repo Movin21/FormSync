@@ -79,7 +79,6 @@ export const Documentation: React.FC = () => {
     // Disable auto-detection during navigation
     isNavigatingRef.current = true;
     setActiveSection(id);
-
     const element = document.getElementById(id);
     if (element) {
       const offset = 80;
@@ -137,7 +136,6 @@ export const Documentation: React.FC = () => {
       let score = 0;
       if (title.toLowerCase().includes(query.toLowerCase())) score += 10;
       if (content.toLowerCase().includes(query.toLowerCase())) score += 1;
-
       if (score > 0) {
         matches.push({ id, title, score });
       }
