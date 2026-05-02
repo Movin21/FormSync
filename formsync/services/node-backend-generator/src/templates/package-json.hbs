@@ -5,10 +5,27 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "test": "jest --runInBand",
+    "test:routes": "jest __tests__/ --runInBand",
+    "test:services": "jest __tests__/services/ --runInBand",
+    "test:contextual": "jest contextual-tests/ --runInBand",
+    "test:coverage": "jest --coverage --runInBand"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js",
+      "**/contextual-tests/**/*.test.js"
+    ],
+    "verbose": true
   }
 }

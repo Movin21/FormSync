@@ -90,7 +90,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   // Refs for undo/redo management
   const isUndoRedoAction = useRef(false);
-  const historyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState("");

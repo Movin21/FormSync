@@ -1,0 +1,143 @@
+const service = require("../../src/services/{{routeName}}.service");
+
+// ── Shared sample payload ────────────────────────────────────────────────────
+const samplePayload = {
+{{#each fields}}
+  {{name}}: {{{testValue}}},
+{{/each}}
+};
+
+// Clear the in-memory store before each test suite run
+beforeEach(() => {
+  const all = [...service.findAll()];
+  all.forEach((item) => service.remove(item.id));
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  create()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("{{name}}Service — create()", () => {
+  it("should return a new item with a generated string id", () => {
+    const item = service.create(samplePayload);
+    expect(item).toHaveProperty("id");
+    expect(typeof item.id).toBe("string");
+  });
+
+  it("should include all provided fields in the returned item", () => {
+    const item = service.create(samplePayload);
+    expect(item).toMatchObject(samplePayload);
+  });
+
+  it("should persist the item so findOne can retrieve it", () => {
+    const item = service.create(samplePayload);
+    const found = service.findOne(item.id);
+    expect(found).toBeDefined();
+    expect(found.id).toBe(item.id);
+  });
+
+  it("should assign unique ids to separate items", () => {
+    const a = service.create(samplePayload);
+    const b = service.create(samplePayload);
+    expect(a.id).not.toBe(b.id);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  findAll()
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("{{name}}Service — findAll()", () => {
+  it("should return an empty array when no items exist", () => {
+    expect(service.findAll()).toEqual([]);
+  });
+
+  it("should return all created items", () => {
+    service.create(samplePayload);
+    service.create(samplePayload);
+    expect(service.findAll()).toHaveLength(2);
+  });
+
+  it("should return an array type", () => {
+    expect(Array.isArray(service.findAll())).toBe(true);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  findOne(id)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("{{name}}Service — findOne(id)", () => {
+  it("should return the item matching the given id", () => {
+    const item = service.create(samplePayload);
+    const found = service.findOne(item.id);
+    expect(found).toMatchObject({ id: item.id });
+  });
+
+  it("should return undefined for an id that does not exist", () => {
+    expect(service.findOne("no-such-id-xyz")).toBeUndefined();
+  });
+
+  it("should not return a deleted item", () => {
+    const item = service.create(samplePayload);
+    service.remove(item.id);
+    expect(service.findOne(item.id)).toBeUndefined();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  update(id, payload)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("{{name}}Service — update(id, payload)", () => {
+  it("should return the updated item preserving the original id", () => {
+    const item = service.create(samplePayload);
+    const updated = service.update(item.id, samplePayload);
+    expect(updated).toHaveProperty("id", item.id);
+  });
+
+  it("should merge new fields into the existing item", () => {
+    const item = service.create(samplePayload);
+    const updated = service.update(item.id, { ...samplePayload });
+    expect(updated).toMatchObject(samplePayload);
+  });
+
+  it("should return null when the id does not exist", () => {
+    expect(service.update("no-such-id-xyz", samplePayload)).toBeNull();
+  });
+
+  it("should not affect other items in the store", () => {
+    const a = service.create(samplePayload);
+    const b = service.create(samplePayload);
+    service.update(a.id, samplePayload);
+    expect(service.findOne(b.id)).toBeDefined();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  remove(id)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("{{name}}Service — remove(id)", () => {
+  it("should return true when the item is successfully removed", () => {
+    const item = service.create(samplePayload);
+    expect(service.remove(item.id)).toBe(true);
+  });
+
+  it("should make the item unretrievable after removal", () => {
+    const item = service.create(samplePayload);
+    service.remove(item.id);
+    expect(service.findOne(item.id)).toBeUndefined();
+  });
+
+  it("should return false for a non-existent id", () => {
+    expect(service.remove("no-such-id-xyz")).toBe(false);
+  });
+
+  it("should reduce the total count by one", () => {
+    const item = service.create(samplePayload);
+    const before = service.findAll().length;
+    service.remove(item.id);
+    expect(service.findAll()).toHaveLength(before - 1);
+  });
+});

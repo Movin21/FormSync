@@ -1,7 +1,8 @@
 const items = [];
+let _nextId = 0;
 
 exports.create = (payload) => {
-  const item = { id: String(Date.now()), ...payload };
+  const item = { id: `${Date.now()}-${++_nextId}`, ...payload };
   items.push(item);
   return item;
 };

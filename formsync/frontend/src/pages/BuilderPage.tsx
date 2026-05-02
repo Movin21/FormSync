@@ -24,7 +24,7 @@ const SchemaLoader: React.FC = () => {
     if (schemaId) {
       const fetchSchema = async () => {
         try {
-          const response = await fetch(`/api/schema/${schemaId}`);
+          const response = await fetch(`/schema/${schemaId}`);
           if (!response.ok)
             throw new Error(
               `API returned ${response.status}: ${response.statusText}`,
@@ -74,7 +74,7 @@ const SchemaLoader: React.FC = () => {
             // Auto-save to get a real schemaId so "Generate Code" works
             if (user?.id) {
               try {
-                const saveResponse = await fetch("/api/schema", {
+                const saveResponse = await fetch("/schema", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({

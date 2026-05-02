@@ -75,4 +75,16 @@ export class AuthController {
   async changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(req.user.userId, dto);
   }
+
+  @Get("../health")
+  @ApiOperation({ summary: "Health check endpoint", tags: ["health"] })
+  @ApiResponse({ status: 200, description: "Service is healthy" })
+  async healthCheck() {
+    return {
+      status: "ok",
+      service: "user-management-service",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    };
+  }
 }

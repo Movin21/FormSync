@@ -364,23 +364,21 @@ function validateBackendStructure(
  * Body: { formModel: FormModel }
  * Response: ZIP blob containing a complete standalone Vite + React app
  */
-app.post("/generate-react", async (req, res) => {
-  const { formModel }: { formModel: FormModel } = req.body;
+app.post('/generate-react', async (req, res) => {
+    const { formModel }: { formModel: FormModel } = req.body;
 
-  if (!formModel) {
-    return res.status(400).json({ error: "formModel is required" });
-  }
+    if (!formModel) {
+        return res.status(400).json({ error: 'formModel is required' });
+    }
 
-  const requestId = crypto.randomUUID();
-  const tempDir = path.join(os.tmpdir(), `formgen-react-${requestId}`);
+    const requestId = crypto.randomUUID();
+    const tempDir = path.join(os.tmpdir(), `formgen-react-${requestId}`);
 
-  console.log(
-    `[${requestId}] Generating React app for form: "${formModel.name}"`,
-  );
+    console.log(`[${requestId}] Generating React app for form: "${formModel.name}"`);
 
-  try {
-    await fs.ensureDir(tempDir);
-    await fs.ensureDir(path.join(tempDir, "src"));
+    try {
+        await fs.ensureDir(tempDir);
+        await fs.ensureDir(path.join(tempDir, 'src'));
 
     // Generate all project files
     const files = generateFrontendFiles(formModel);
@@ -531,12 +529,8 @@ app.post("/generate-fullstack", async (req, res) => {
 /**
  * GET /health
  */
-app.get("/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "formgen-service",
-    uptime: process.uptime(),
-  });
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'formgen-service', uptime: process.uptime() });
 });
 
 app.listen(port, () => {

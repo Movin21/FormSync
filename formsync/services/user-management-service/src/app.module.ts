@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { TemplateModule } from './template/template.module';
 import { ProjectModule } from './project/project.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { ProjectModule } from './project/project.module';
         UserModule,
         TemplateModule,
         ProjectModule,
+        HealthModule,
     ],
     providers: [PrismaService],
     exports: [PrismaService],

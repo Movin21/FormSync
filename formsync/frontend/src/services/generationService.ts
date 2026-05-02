@@ -4,6 +4,8 @@
 
 // const API_BASE_URL = 'http://localhost:3000/api';
 
+export type BackendLanguage = "nodeExpress" | "springBoot";
+
 export interface GenerateRequest {
   schema: any;
   validatedSchema?: any;
@@ -20,16 +22,17 @@ export interface GenerateResponse {
   error?: string;
 }
 
-const API_GATEWAY_URL = "http://localhost:3000";
-export type BackendLanguage = "springBoot" | "nodeExpress";
+const API_GATEWAY_URL = import.meta.env.VITE_API_URL || "";
 
 export const generationService = {
   /**
    * Generate all code from validated schema
    */
   async generateAll(validatedSchema: any): Promise<GenerateResponse> {
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = validatedSchema.content || validatedSchema;
     // Generate code client-side from the schema (no external service required)
-    return this.generateFromSchema(validatedSchema);
+    return this.generateFromSchema(actualSchema);
   },
 
   /**
@@ -41,15 +44,13 @@ export const generationService = {
     filename?: string,
     backendLanguage: BackendLanguage = "springBoot",
   ): Promise<void> {
-    const endpoint =
-      backendLanguage === "nodeExpress"
-        ? `${API_GATEWAY_URL}/node-backend/generate`
-        : `${API_GATEWAY_URL}/runtime/generate`;
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = schema.content || schema;
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schema }),
+      body: JSON.stringify({ schema: actualSchema }),
     });
 
     if (!response.ok) {
@@ -83,16 +84,20 @@ export const generationService = {
     schema: any,
     backendLanguage: BackendLanguage = "springBoot",
   ): Promise<void> {
-    const response = await fetch(`${API_GATEWAY_URL}/bundle/generate-fullstack`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formModel, schema, backendLanguage }),
-    });
+    const response = await fetch(
+      `${API_GATEWAY_URL}/bundle/generate-fullstack`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formModel, schema, backendLanguage }),
+      },
+    );
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
       throw new Error(
-        errorBody?.error || `Fullstack bundle generation failed (${response.status})`,
+        errorBody?.error ||
+          `Fullstack bundle generation failed (${response.status})`,
       );
     }
 
@@ -200,8 +205,10 @@ export const generationService = {
     validatedSchema: any,
     _filename: string = "generated-project",
   ): Promise<void> {
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = validatedSchema.content || validatedSchema;
     // Generate client-side and download as individual files (no ZIP service needed)
-    const result = this.generateFromSchema(validatedSchema);
+    const result = this.generateFromSchema(actualSchema);
     if (!result.success || !result.data) throw new Error("Generation failed");
 
     const files: { name: string; content: string }[] = [

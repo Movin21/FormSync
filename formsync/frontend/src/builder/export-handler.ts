@@ -7,13 +7,11 @@
 
 import { FormModel } from '../types';
 
-const FORMGEN_SERVICE_URL = import.meta.env.VITE_FORMGEN_SERVICE_URL || 'http://localhost:3003';
-
 export async function exportReactApp(formModel: FormModel): Promise<void> {
     try {
         console.log('[Export] Calling formgen-service for:', formModel.name);
 
-        const response = await fetch(`${FORMGEN_SERVICE_URL}/generate-react`, {
+        const response = await fetch('/formgen/generate-react', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ formModel }),

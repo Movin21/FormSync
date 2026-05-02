@@ -85,10 +85,7 @@ interface SchemaStore {
 
   // Actions
   setCurrentSchema: (schema: any) => void;
-  convertSchema: (
-    input: string,
-    format?: "json" | "yaml" | "xml",
-  ) => Promise<any>;
+  convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<any>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
   applySuggestion: (
     suggestion: SchemaSuggestion,
@@ -167,9 +164,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       for (const newSugg of newSuggestions) {
         // Only skip if the suggestion is already in the merged list (i.e. already applied)
         const alreadyExists = mergedSuggestions.some(
-          (s) =>
-            s.path === newSugg.path &&
-            JSON.stringify(s.rule) === JSON.stringify(newSugg.rule),
+          (s) => s.path === newSugg.path && JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
         );
 
         if (!alreadyExists) {
@@ -202,30 +197,21 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             suggestions: mergedSuggestions,
             aiChanges: data.changes || [],
             qualityMetrics: {
-              qualityScore:
-                recalcData.quality?.score || recalcData.qualityScore,
-              qualityBreakdown:
-                recalcData.quality?.breakdown || recalcData.qualityBreakdown,
+              qualityScore: recalcData.quality?.score || recalcData.qualityScore,
+              qualityBreakdown: recalcData.quality?.breakdown || recalcData.qualityBreakdown,
               issues: recalcData.quality?.issues || recalcData.issues || [],
               explanations: data.explanations || [],
-              metrics: data.metrics || {
-                totalChanges: 0,
-                accessibilityCoverage: 0,
-              },
+              metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
               appliedSuggestionsCount:
                 recalcData.appliedSuggestionsCount ||
                 mergedSuggestions.filter((s) => s.applied).length,
-              totalSuggestionsCount:
-                recalcData.totalSuggestionsCount || mergedSuggestions.length,
+              totalSuggestionsCount: recalcData.totalSuggestionsCount || mergedSuggestions.length,
             },
             loading: false,
           });
           return;
         } catch (recalcError) {
-          console.warn(
-            "[SchemaStore] Failed to recalculate quality, using default:",
-            recalcError,
-          );
+          console.warn('[SchemaStore] Failed to recalculate quality, using default:', recalcError);
           // Fall through to default set below
         }
       }
@@ -249,12 +235,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
-          metrics: data.metrics || {
-            totalChanges: 0,
-            accessibilityCoverage: 0,
-          },
-          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied)
-            .length,
+          metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied).length,
           totalSuggestionsCount: mergedSuggestions.length,
         },
         loading: false,

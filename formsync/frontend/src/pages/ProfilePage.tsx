@@ -35,7 +35,7 @@ import {
   FileText,
 } from "lucide-react";
 
-const SCHEMA_API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const SCHEMA_API_URL = import.meta.env.VITE_API_URL || "";
 
 /* ── tiny animation helpers ──────────────────────────────── */
 const fadeUp = {
