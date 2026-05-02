@@ -1,0 +1,162 @@
+const request = require("supertest");
+const app = require("../../src/server");
+
+// ── Shared valid payload derived from the schema ─────────────────────────────
+const validPayload = {
+{{#each fields}}
+  {{name}}: {{{testValue}}},
+{{/each}}
+};
+
+// ── Helper: create one item and return its id ─────────────────────────────────
+async function createOne(overrides = {}) {
+  const res = await request(app)
+    .post("/api/{{routeName}}")
+    .send({ ...validPayload, ...overrides });
+  return res.body.id;
+}
+
+afterAll((done) => {
+  if (app.closeServer) app.closeServer(done);
+  else done();
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  POST /api/{{routeName}} — Create
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("POST /api/{{routeName}} — create", () => {
+  it("should return 201 and an id when given a valid payload", async () => {
+    const res = await request(app)
+      .post("/api/{{routeName}}")
+      .send(validPayload)
+      .expect(201);
+
+    expect(res.body).toHaveProperty("id");
+    expect(typeof res.body.id).toBe("string");
+  });
+
+  it("should store all provided fields", async () => {
+    const res = await request(app)
+      .post("/api/{{routeName}}")
+      .send(validPayload)
+      .expect(201);
+
+{{#each fields}}
+    expect(res.body).toHaveProperty("{{name}}", validPayload.{{name}});
+{{/each}}
+  });
+
+  it("should accept an empty payload and still return 201 with an id", async () => {
+    const res = await request(app)
+      .post("/api/{{routeName}}")
+      .send({})
+      .expect(201);
+
+    expect(res.body).toHaveProperty("id");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  GET /api/{{routeName}} — List all
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("GET /api/{{routeName}} — list all", () => {
+  it("should return 200 and an array", async () => {
+    const res = await request(app)
+      .get("/api/{{routeName}}")
+      .expect(200);
+
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("should include a previously created item", async () => {
+    const id = await createOne();
+    const res = await request(app).get("/api/{{routeName}}").expect(200);
+    const ids = res.body.map((item) => item.id);
+    expect(ids).toContain(id);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  GET /api/{{routeName}}/:id — Get by ID
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("GET /api/{{routeName}}/:id — get by id", () => {
+  it("should return 200 with the correct item when it exists", async () => {
+    const id = await createOne();
+    const res = await request(app)
+      .get(`/api/{{routeName}}/${id}`)
+      .expect(200);
+
+    expect(res.body).toHaveProperty("id", id);
+  });
+
+  it("should return 404 for a non-existent id", async () => {
+    await request(app)
+      .get("/api/{{routeName}}/nonexistent-id-99999")
+      .expect(404);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  PUT /api/{{routeName}}/:id — Update
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("PUT /api/{{routeName}}/:id — update", () => {
+  it("should return 200 and the updated item when the id exists", async () => {
+    const id = await createOne();
+    const res = await request(app)
+      .put(`/api/{{routeName}}/${id}`)
+      .send(validPayload)
+      .expect(200);
+
+    expect(res.body).toHaveProperty("id", id);
+  });
+
+  it("should persist the updated fields", async () => {
+    const id = await createOne();
+{{#each fields}}
+{{#if @first}}
+    const updated = await request(app)
+      .put(`/api/{{../routeName}}/${id}`)
+      .send({ ...validPayload, {{name}}: validPayload.{{name}} })
+      .expect(200);
+
+    expect(updated.body).toHaveProperty("{{name}}");
+{{/if}}
+{{/each}}
+  });
+
+  it("should return 404 when updating a non-existent id", async () => {
+    await request(app)
+      .put("/api/{{routeName}}/nonexistent-id-99999")
+      .send(validPayload)
+      .expect(404);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  DELETE /api/{{routeName}}/:id — Remove
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("DELETE /api/{{routeName}}/:id — remove", () => {
+  it("should return 204 when the item exists", async () => {
+    const id = await createOne();
+    await request(app)
+      .delete(`/api/{{routeName}}/${id}`)
+      .expect(204);
+  });
+
+  it("should make the item unreachable via GET after deletion", async () => {
+    const id = await createOne();
+    await request(app).delete(`/api/{{routeName}}/${id}`).expect(204);
+    await request(app).get(`/api/{{routeName}}/${id}`).expect(404);
+  });
+
+  it("should return 404 when deleting a non-existent id", async () => {
+    await request(app)
+      .delete("/api/{{routeName}}/nonexistent-id-99999")
+      .expect(404);
+  });
+});
