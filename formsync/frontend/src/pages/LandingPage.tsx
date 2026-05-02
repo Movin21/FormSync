@@ -33,6 +33,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Footer } from "../components/layout/Footer";
 
 export const LandingPage: React.FC = () => {
+
   return (
     <div className="min-h-screen bg-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col">
       {/* Gradient Background */}
