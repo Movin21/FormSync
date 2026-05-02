@@ -4,7 +4,10 @@ import { LeftPanel } from "./LeftPanel";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
-import { useBuilder } from "../context/BuilderContext";
+import {
+  FORMSYNC_BUILDER_EXPORT_FORM_KEY,
+  useBuilder,
+} from "../context/BuilderContext";
 import { generationService } from "../services/generationService";
 import {
   formModelToJsonSchema,
@@ -54,10 +57,36 @@ export const BuilderLayout: React.FC = () => {
       }
 
       if (state.schemaId) {
-        navigate(`/generated?schemaId=${state.schemaId}`, {
-          state: { schema: synced },
-        });
-        return;
+        // Full-page navigation cannot carry router state — stash FormModel for Download All / bundle
+        try {
+          sessionStorage.setItem(
+            FORMSYNC_BUILDER_EXPORT_FORM_KEY,
+            JSON.stringify({ schemaId: state.schemaId, form: state.form }),
+          );
+        } catch {
+          /* ignore */
+        }
+        window.location.href = `/generated?schemaId=${state.schemaId}`;
+      } else {
+        // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
+        const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
+        if (rawSchemaStr) {
+          const schema = JSON.parse(rawSchemaStr);
+          const result = generationService.generateFromSchema(schema);
+          sessionStorage.removeItem("formsync_schema_raw");
+          if (result.success && result.data) {
+            navigate("/generated", {
+              state: {
+                generatedCode: result.data,
+                schema,
+                formModel: state.form,
+              },
+            });
+            return;
+          }
+        }
+        // Final fallback — no schema context available
+        window.location.href = "/generated";
       }
 
       const result = generationService.generateFromSchema(synced);
