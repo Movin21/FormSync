@@ -20,11 +20,15 @@ jobs:
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 55m
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
             set -e
             BRANCH="${{ github.ref_name }}"
@@ -111,6 +115,14 @@ jobs:
 
             echo ".env contents (secrets redacted):"
             grep -v "SECRET\|PASSWORD\|KEY\|DATABASE_URL" .env || true
+
+            # ── Authenticate to Docker Hub to avoid anonymous pull rate limits ─
+            if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+              echo "Logging in to Docker Hub as $DOCKERHUB_USERNAME..."
+              echo "$DOCKERHUB_TOKEN" | sudo docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            else
+              echo "WARNING: DOCKERHUB_USERNAME / DOCKERHUB_TOKEN not set — pulls will be anonymous and may hit rate limits"
+            fi
 
             # ── Stop existing containers — preserve DB volumes ─────────────
             echo "Stopping existing containers (volumes kept)..."
