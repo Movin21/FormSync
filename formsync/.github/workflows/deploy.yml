@@ -30,64 +30,50 @@ jobs:
           envs: JWT_SECRET,OPENAI_API_KEY,DATABASE_URL,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB
           command_timeout: 30m
           script: |
-            set -eo pipefail
-            exec 2>&1
-            trap 'echo "DEPLOY FAILED at line $LINENO — command: $BASH_COMMAND"' ERR
-            echo "Starting deployment..."
+            set -e
+            echo "==> Starting deployment"
 
-            # ================================
-            # Install Docker
-            # ================================
-            if ! command -v docker &> /dev/null; then
-              echo "Installing Docker via apt..."
+            # ── Docker ─────────────────────────────────────────────
+            if ! command -v docker &>/dev/null; then
+              echo "==> Installing Docker"
               sudo apt-get update
               sudo apt-get install -y docker.io
               sudo systemctl enable docker
               sudo systemctl start docker
               sudo usermod -aG docker "$USER"
             else
-              echo "Docker already installed: $(docker --version)"
+              echo "==> Docker already present"
             fi
 
-            # Repair broken Docker daemon state from any previous partial install
-            if ! sudo systemctl is-active --quiet docker; then
-              echo "Starting docker daemon..."
-              sudo systemctl start docker
-            fi
+            # Ensure daemon is running (handles partial install from prior runs)
+            sudo systemctl start docker 2>/dev/null || true
+            sudo chmod 666 /var/run/docker.sock
 
-            # Fix docker socket permission for current session
-            if ! docker ps > /dev/null 2>&1; then
-              sudo chmod 666 /var/run/docker.sock
-            fi
-
-            # Install Docker Compose v2 plugin if missing
-            if ! docker compose version > /dev/null 2>&1; then
-              echo "Installing Docker Compose v2..."
-              COMPOSE_VERSION="v2.24.7"
+            # ── Docker Compose v2 ──────────────────────────────────
+            if ! docker compose version &>/dev/null; then
+              echo "==> Installing Docker Compose v2"
               sudo mkdir -p /usr/local/lib/docker/cli-plugins
               sudo curl -fsSL \
-                "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+                "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" \
                 -o /usr/local/lib/docker/cli-plugins/docker-compose
               sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
             fi
 
-            echo "Docker:  $(docker --version)"
-            echo "Compose: $(docker compose version)"
+            echo "==> $(docker --version)"
+            echo "==> $(docker compose version)"
 
             dc() { docker compose "$@"; }
 
-            # ================================
-            # Setup project
-            # ================================
+            # ── Repo ───────────────────────────────────────────────
             mkdir -p ~/formsync
             cd ~/formsync
 
             if [ -d ".git" ]; then
-              echo "Updating repo..."
+              echo "==> Updating repo"
               git fetch origin
               git reset --hard origin/Deployment
             else
-              echo "Cloning repo..."
+              echo "==> Cloning repo"
               rm -rf ./* .[^.]* 2>/dev/null || true
               git clone https://github.com/${{ github.repository }}.git .
               git checkout Deployment
@@ -95,26 +81,15 @@ jobs:
 
             cd formsync
 
-            # ================================
-            # Verify compose file
-            # ================================
-            if [ ! -f docker-compose.yml ]; then
-              echo "docker-compose.yml not found!"
-              exit 1
-            fi
+            [ -f docker-compose.yml ] || { echo "docker-compose.yml not found"; exit 1; }
 
-            # ================================
-            # Write .env (no heredoc — avoids YAML indentation conflict)
-            # Secrets are passed as env vars via the envs: parameter above
-            # ================================
-            echo "Creating .env..."
+            # ── .env ───────────────────────────────────────────────
+            echo "==> Writing .env"
             {
               echo "NODE_ENV=production"
               echo "JWT_EXPIRES_IN=7d"
-              echo ""
               echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1"
               echo "OPENAI_MODEL=llama-3.3-70b-versatile"
-              echo ""
               echo "GATEWAY_PORT=3000"
               echo "SCHEMA_ENGINE_PORT=3010"
               echo "USER_SERVICE_PORT=3011"
@@ -123,7 +98,6 @@ jobs:
               echo "FORMGEN_SERVICE_PORT=3014"
               echo "NODE_BACKEND_GENERATOR_PORT=3015"
               echo "DOTNET_BACKEND_GENERATOR_PORT=3016"
-              echo ""
               echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010"
               echo "USER_SERVICE_URL=http://user-management-service:3011"
               echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012"
@@ -131,79 +105,61 @@ jobs:
               echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
               echo "NODE_BACKEND_GENERATOR_URL=http://node-backend-generator:3015"
               echo "DOTNET_BACKEND_GENERATOR_URL=http://dotnet-backend-generator:3016"
-              echo ""
               echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
               echo "FRONTEND_URL=http://localhost"
-              echo ""
               echo "DOCKER_BUILDKIT=1"
               echo "COMPOSE_DOCKER_CLI_BUILD=1"
-              echo ""
               echo "NPM_CONFIG_LOGLEVEL=warn"
               echo "NPM_CONFIG_PROGRESS=false"
               echo "NPM_CONFIG_AUDIT=false"
               echo "NPM_CONFIG_FUND=false"
-              echo ""
-              echo "JWT_SECRET=${JWT_SECRET}"
-              echo "OPENAI_API_KEY=${OPENAI_API_KEY}"
-              echo "DATABASE_URL=${DATABASE_URL}"
-              echo "POSTGRES_USER=${POSTGRES_USER}"
-              echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
-              echo "POSTGRES_DB=${POSTGRES_DB}"
+              printf 'JWT_SECRET=%s\n'          "$JWT_SECRET"
+              printf 'OPENAI_API_KEY=%s\n'      "$OPENAI_API_KEY"
+              printf 'DATABASE_URL=%s\n'        "$DATABASE_URL"
+              printf 'POSTGRES_USER=%s\n'       "$POSTGRES_USER"
+              printf 'POSTGRES_PASSWORD=%s\n'   "$POSTGRES_PASSWORD"
+              printf 'POSTGRES_DB=%s\n'         "$POSTGRES_DB"
             } > .env
-            echo ".env created"
 
-            # ================================
-            # Cleanup
-            # ================================
-            echo "Cleaning old containers..."
-            dc down || true
+            # ── Cleanup ────────────────────────────────────────────
+            echo "==> Cleaning up"
+            dc down --remove-orphans 2>/dev/null || true
             docker system prune -af --volumes || true
-            docker builder prune -af || true
-
-            echo "Disk space:"
             df -h /
 
-            # ================================
-            # Build (sequential)
-            # ================================
-            echo "Building services..."
-            for svc in schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service node-backend-generator dotnet-backend-generator api-gateway frontend; do
-              echo "Building $svc..."
-              dc build "$svc" || {
-                echo "Retry $svc..."
-                docker builder prune -af || true
-                dc build "$svc"
-              }
+            # ── Build ──────────────────────────────────────────────
+            echo "==> Building images"
+            for svc in \
+              schema-enhancement-engine \
+              user-management-service \
+              backend-dto-generator \
+              runtime-binding-engine \
+              formgen-service \
+              node-backend-generator \
+              dotnet-backend-generator \
+              api-gateway \
+              frontend; do
+              echo "--- building $svc"
+              dc build "$svc" || { dc build --no-cache "$svc"; }
             done
 
-            # ================================
-            # Start
-            # ================================
-            echo "Starting services..."
+            # ── Start ──────────────────────────────────────────────
+            echo "==> Starting services"
             dc up -d --no-build
+            sleep 20
 
-            sleep 15
-
-            # ================================
-            # Status
-            # ================================
-            echo "Containers:"
+            # ── Health check ───────────────────────────────────────
+            echo "==> Container status"
             docker ps -a
 
-            echo "Usage:"
-            docker system df
-
-            # ================================
-            # Check for failed containers
-            # ================================
             FAILED=$(docker ps -a --filter "status=exited" --format "{{.Names}}")
             if [ -n "$FAILED" ]; then
-              echo "Failed containers:"
+              echo "==> FAILED containers:"
               for c in $FAILED; do
-                echo "==== $c logs ===="
-                docker logs --tail 20 "$c"
+                echo "---- $c ----"
+                docker logs --tail 30 "$c"
               done
               exit 1
             fi
 
-            echo "Deployment successful!"
+            echo "==> Deployment successful"
