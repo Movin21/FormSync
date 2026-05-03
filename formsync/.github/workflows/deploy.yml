@@ -1,0 +1,165 @@
+name: Deploy FormSync to EC2
+
+on:
+  push:
+    branches: [Deployment, net-bug-fix]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: JWT_SECRET,OPENAI_API_KEY,DATABASE_URL,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB
+          command_timeout: 30m
+          script: |
+            set -e
+            echo "==> Starting deployment"
+
+            # ── Docker ─────────────────────────────────────────────
+            if ! command -v docker &>/dev/null; then
+              echo "==> Installing Docker"
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl enable docker
+              sudo systemctl start docker
+              sudo usermod -aG docker "$USER"
+            else
+              echo "==> Docker already present"
+            fi
+
+            # Ensure daemon is running (handles partial install from prior runs)
+            sudo systemctl start docker 2>/dev/null || true
+            sudo chmod 666 /var/run/docker.sock
+
+            # ── Docker Compose v2 ──────────────────────────────────
+            if ! docker compose version &>/dev/null; then
+              echo "==> Installing Docker Compose v2"
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -fsSL \
+                "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-linux-x86_64" \
+                -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            fi
+
+            echo "==> $(docker --version)"
+            echo "==> $(docker compose version)"
+
+            dc() { docker compose "$@"; }
+
+            # ── Repo ───────────────────────────────────────────────
+            mkdir -p ~/formsync
+            cd ~/formsync
+
+            if [ -d ".git" ]; then
+              echo "==> Updating repo"
+              git fetch origin
+              git reset --hard origin/Deployment
+            else
+              echo "==> Cloning repo"
+              rm -rf ./* .[^.]* 2>/dev/null || true
+              git clone https://github.com/${{ github.repository }}.git .
+              git checkout Deployment
+            fi
+
+            cd formsync
+
+            [ -f docker-compose.yml ] || { echo "docker-compose.yml not found"; exit 1; }
+
+            # ── .env ───────────────────────────────────────────────
+            echo "==> Writing .env"
+            {
+              echo "NODE_ENV=production"
+              echo "JWT_EXPIRES_IN=7d"
+              echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1"
+              echo "OPENAI_MODEL=llama-3.3-70b-versatile"
+              echo "GATEWAY_PORT=3000"
+              echo "SCHEMA_ENGINE_PORT=3010"
+              echo "USER_SERVICE_PORT=3011"
+              echo "DTO_GENERATOR_PORT=3012"
+              echo "RUNTIME_ENGINE_PORT=3013"
+              echo "FORMGEN_SERVICE_PORT=3014"
+              echo "NODE_BACKEND_GENERATOR_PORT=3015"
+              echo "DOTNET_BACKEND_GENERATOR_PORT=3016"
+              echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010"
+              echo "USER_SERVICE_URL=http://user-management-service:3011"
+              echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012"
+              echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013"
+              echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
+              echo "NODE_BACKEND_GENERATOR_URL=http://node-backend-generator:3015"
+              echo "DOTNET_BACKEND_GENERATOR_URL=http://dotnet-backend-generator:3016"
+              echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
+              echo "FRONTEND_URL=http://localhost"
+              echo "DOCKER_BUILDKIT=1"
+              echo "COMPOSE_DOCKER_CLI_BUILD=1"
+              echo "NPM_CONFIG_LOGLEVEL=warn"
+              echo "NPM_CONFIG_PROGRESS=false"
+              echo "NPM_CONFIG_AUDIT=false"
+              echo "NPM_CONFIG_FUND=false"
+              printf 'JWT_SECRET=%s\n'          "$JWT_SECRET"
+              printf 'OPENAI_API_KEY=%s\n'      "$OPENAI_API_KEY"
+              printf 'DATABASE_URL=%s\n'        "$DATABASE_URL"
+              printf 'POSTGRES_USER=%s\n'       "$POSTGRES_USER"
+              printf 'POSTGRES_PASSWORD=%s\n'   "$POSTGRES_PASSWORD"
+              printf 'POSTGRES_DB=%s\n'         "$POSTGRES_DB"
+            } > .env
+
+            # ── Cleanup ────────────────────────────────────────────
+            echo "==> Cleaning up"
+            dc down --remove-orphans 2>/dev/null || true
+            docker system prune -af --volumes || true
+            df -h /
+
+            # ── Build ──────────────────────────────────────────────
+            echo "==> Building images"
+            for svc in \
+              schema-enhancement-engine \
+              user-management-service \
+              backend-dto-generator \
+              runtime-binding-engine \
+              formgen-service \
+              node-backend-generator \
+              dotnet-backend-generator \
+              api-gateway \
+              frontend; do
+              echo "--- building $svc"
+              dc build "$svc" || { dc build --no-cache "$svc"; }
+            done
+
+            # ── Start ──────────────────────────────────────────────
+            echo "==> Starting services"
+            dc up -d --no-build
+            sleep 20
+
+            # ── Health check ───────────────────────────────────────
+            echo "==> Container status"
+            docker ps -a
+
+            FAILED=$(docker ps -a --filter "status=exited" --format "{{.Names}}")
+            if [ -n "$FAILED" ]; then
+              echo "==> FAILED containers:"
+              for c in $FAILED; do
+                echo "---- $c ----"
+                docker logs --tail 30 "$c"
+              done
+              exit 1
+            fi
+
+            echo "==> Deployment successful"

@@ -93,7 +93,7 @@ export class DotNetGenerator {
     const raw = schema.content || schema;
     const rawName = schema.name || raw.title || 'App';
     const appName = toPascalCase(rawName);
-    const namespace = appName;
+    const namespace = appName.endsWith('Api') ? appName : appName + 'Api';
     const required: string[] = Array.isArray(raw.required) ? raw.required : [];
     const properties = raw.properties || {};
 

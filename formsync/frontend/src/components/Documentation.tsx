@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ChevronRight, Copy, Check, Info, AlertTriangle,
-  Sparkles, FileJson2, Upload, FolderOpen, Eye, Wand2,
+  Sparkles, FileJson2, FolderOpen, Eye, Wand2,
   ShieldCheck, Zap, BookOpen, ArrowRight, ArrowLeft,
   Code2, Layers, BarChart3, CheckCircle2, XCircle,
-  Lightbulb, Terminal, ChevronDown, Star, Clock,
-  FileText, Settings, HelpCircle, ExternalLink,
+  Lightbulb, Terminal, ChevronDown, Star,
+  FileText, Settings, HelpCircle,
 } from "lucide-react";
 import { Footer } from "./layout/Footer";
 
