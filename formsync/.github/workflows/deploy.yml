@@ -30,7 +30,9 @@ jobs:
           envs: JWT_SECRET,OPENAI_API_KEY,DATABASE_URL,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB
           command_timeout: 30m
           script: |
-            set -e
+            set -eo pipefail
+            exec 2>&1
+            trap 'echo "DEPLOY FAILED at line $LINENO — command: $BASH_COMMAND"' ERR
             echo "Starting deployment..."
 
             # ================================
@@ -38,39 +40,41 @@ jobs:
             # ================================
             if ! command -v docker &> /dev/null; then
               echo "Installing Docker via apt..."
-              sudo apt-get update -qq
+              sudo apt-get update
               sudo apt-get install -y docker.io
               sudo systemctl enable docker
               sudo systemctl start docker
-              sudo usermod -aG docker $USER
+              sudo usermod -aG docker "$USER"
             else
-              echo "Docker already installed"
+              echo "Docker already installed: $(docker --version)"
             fi
 
-            # Install Docker Compose v2 plugin if missing
-            if ! docker compose version &> /dev/null 2>&1; then
-              echo "Installing Docker Compose v2..."
-              COMPOSE_VERSION="v2.24.7"
-              sudo mkdir -p /usr/local/lib/docker/cli-plugins
-              sudo curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
-                -o /usr/local/lib/docker/cli-plugins/docker-compose
-              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            # Repair broken Docker daemon state from any previous partial install
+            if ! sudo systemctl is-active --quiet docker; then
+              echo "Starting docker daemon..."
+              sudo systemctl start docker
             fi
 
-            # Fix docker socket permission for current session without newgrp
+            # Fix docker socket permission for current session
             if ! docker ps > /dev/null 2>&1; then
               sudo chmod 666 /var/run/docker.sock
             fi
 
-            echo "Docker version:"
-            docker --version
-            echo "Compose version:"
-            docker compose version
+            # Install Docker Compose v2 plugin if missing
+            if ! docker compose version > /dev/null 2>&1; then
+              echo "Installing Docker Compose v2..."
+              COMPOSE_VERSION="v2.24.7"
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -fsSL \
+                "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+                -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            fi
 
-            # Compose wrapper
-            dc() {
-              docker compose "$@"
-            }
+            echo "Docker:  $(docker --version)"
+            echo "Compose: $(docker compose version)"
+
+            dc() { docker compose "$@"; }
 
             # ================================
             # Setup project
