@@ -49,7 +49,7 @@ export class TemplateService {
       throw new Error(`Template not found: ${filePath}`);
     }
     const source = fs.readFileSync(filePath, 'utf-8');
-    this.templates.set(name, handlebars.compile(source));
+    this.templates.set(name, handlebars.compile(source, { noEscape: true }));
   }
 
   public render(templateName: string, data: any): string {

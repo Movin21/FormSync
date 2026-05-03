@@ -39,9 +39,6 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowUp,
-  Users,
-  Zap,
-  Star,
   FileText,
   Upload,
   Layers,
@@ -124,125 +121,6 @@ const ParticleGrid = () => {
         />
       ))}
     </div>
-  );
-};
-
-// ─────────────────────────────────────────────
-// Animated Counter
-// ─────────────────────────────────────────────
-const AnimatedCounter = ({
-  target,
-  suffix = "",
-  prefix = "",
-}: {
-  target: number;
-  suffix?: string;
-  prefix?: string;
-}) => {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const motionVal = useMotionValue(0);
-  const spring = useSpring(motionVal, { duration: 2000, bounce: 0 });
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    if (inView) motionVal.set(target);
-  }, [inView, target, motionVal]);
-
-  useEffect(() => {
-    return spring.on("change", (v) => setDisplay(Math.round(v)));
-  }, [spring]);
-
-  return (
-    <span ref={ref}>
-      {prefix}
-      {display.toLocaleString()}
-      {suffix}
-    </span>
-  );
-};
-
-// ─────────────────────────────────────────────
-// Stats Strip
-// ─────────────────────────────────────────────
-const stats = [
-  { icon: FileJson, label: "Schemas Validated", value: 12400, suffix: "+" },
-  { icon: Code2, label: "Forms Generated", value: 58000, suffix: "+" },
-  { icon: Users, label: "Developers", value: 3200, suffix: "+" },
-  { icon: Zap, label: "Time Saved (hrs)", value: 21000, suffix: "+" },
-];
-
-const StatsStrip = () => (
-  <section className="relative z-10 py-14 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 overflow-hidden">
-    <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
-    <div className="max-w-6xl mx-auto px-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-        {stats.map(({ icon: Icon, label, value, suffix }) => (
-          <motion.div
-            key={label}
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center text-white"
-          >
-            <Icon className="h-7 w-7 mx-auto mb-2 opacity-80" />
-            <div className="text-3xl font-bold mb-1">
-              <AnimatedCounter target={value} suffix={suffix} />
-            </div>
-            <div className="text-sm text-white/70">{label}</div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// ─────────────────────────────────────────────
-// Tech Logos Marquee
-// ─────────────────────────────────────────────
-const techLogos = [
-  { name: "React", color: "text-cyan-500" },
-  { name: "TypeScript", color: "text-blue-500" },
-  { name: "NestJS", color: "text-red-500" },
-  { name: "Node.js", color: "text-green-500" },
-  { name: "JSON Schema", color: "text-yellow-500" },
-  { name: "GPT-4", color: "text-purple-500" },
-  { name: "Docker", color: "text-blue-400" },
-  { name: "Vite", color: "text-violet-500" },
-  { name: "Express", color: "text-neutral-500" },
-  { name: "Zod", color: "text-indigo-500" },
-  { name: "Prisma", color: "text-teal-500" },
-  { name: "Swagger", color: "text-green-400" },
-];
-
-const TechMarquee = () => {
-  const doubled = [...techLogos, ...techLogos];
-  return (
-    <section className="relative z-10 py-8 bg-neutral-50/80 dark:bg-neutral-900/50 border-y border-neutral-200 dark:border-neutral-800 overflow-hidden">
-      <p className="text-center text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">
-        Powered by
-      </p>
-      <div className="relative overflow-hidden">
-        <motion.div
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="flex gap-10 whitespace-nowrap w-max"
-        >
-          {doubled.map((t, i) => (
-            <span
-              key={i}
-              className={`text-sm font-semibold ${t.color} opacity-70 hover:opacity-100 transition-opacity cursor-default select-none`}
-            >
-              {t.name}
-            </span>
-          ))}
-        </motion.div>
-        {/* Fade edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-neutral-50 dark:from-neutral-900 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-neutral-50 dark:from-neutral-900 to-transparent" />
-      </div>
-    </section>
   );
 };
 
