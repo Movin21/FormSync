@@ -24,10 +24,12 @@ jobs:
           script: |
             set -e
 
-            echo "🏠 Starting deployment..."
+            echo "🚀 STARTING DEPLOYMENT"
+            echo "User: $(whoami)"
+            echo "Host: $(hostname)"
 
             # ================================
-            # 🐳 Install Docker (universal)
+            # 🐳 INSTALL DOCKER (UNIVERSAL FIX)
             # ================================
             if ! command -v docker &> /dev/null; then
               echo "🐳 Installing Docker..."
@@ -44,30 +46,19 @@ jobs:
             fi
 
             # ================================
-            # 🔁 Fix permission for this session
-            # ================================
-            newgrp docker <<'EONG'
-
-            echo "🐳 Docker version:"
-            docker --version
-
-            # Compose fallback function
-            dc() {
-              docker compose "$@" || docker-compose "$@"
-            }
-
-            # ================================
-            # 📁 Setup project
+            # 📁 PROJECT SETUP
             # ================================
             mkdir -p ~/formsync
             cd ~/formsync
 
+            echo "📁 Working directory: $(pwd)"
+
             if [ -d ".git" ]; then
-              echo "📥 Updating repo..."
+              echo "📥 Updating repository..."
               git fetch origin
               git reset --hard origin/Deployment
             else
-              echo "📥 Cloning repo..."
+              echo "📥 Cloning repository..."
               rm -rf ./* .[^.]* 2>/dev/null || true
               git clone https://github.com/${{ github.repository }}.git .
               git checkout Deployment
@@ -76,17 +67,17 @@ jobs:
             cd formsync
 
             # ================================
-            # ✅ Check compose file
+            # 🧾 CHECK FILES
             # ================================
             if [ ! -f docker-compose.yml ]; then
-              echo "❌ docker-compose.yml not found!"
+              echo "❌ docker-compose.yml missing!"
               exit 1
             fi
 
             # ================================
-            # ⚙️ Create .env
+            # ⚙️ ENV FILE
             # ================================
-            echo "⚙️ Creating .env..."
+            echo "⚙️ Creating .env file..."
 
             cat <<EOF > .env
 NODE_ENV=production
@@ -114,11 +105,6 @@ FRONTEND_URL=http://localhost
 DOCKER_BUILDKIT=1
 COMPOSE_DOCKER_CLI_BUILD=1
 
-NPM_CONFIG_LOGLEVEL=warn
-NPM_CONFIG_PROGRESS=false
-NPM_CONFIG_AUDIT=false
-NPM_CONFIG_FUND=false
-
 JWT_SECRET=${{ secrets.JWT_SECRET }}
 OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
 DATABASE_URL=${{ secrets.DATABASE_URL }}
@@ -130,62 +116,68 @@ EOF
             echo "✅ .env created"
 
             # ================================
-            # 🧹 Cleanup
+            # 🐳 DOCKER SAFE WRAPPER
             # ================================
-            echo "🧹 Cleaning old containers..."
+            dc() {
+              sudo docker compose "$@" || sudo docker-compose "$@"
+            }
+
+            # ================================
+            # 🧹 CLEANUP
+            # ================================
+            echo "🧹 Cleaning system..."
             dc down || true
 
-            docker system prune -af --volumes || true
-            docker builder prune -af || true
+            sudo docker system prune -af --volumes || true
+            sudo docker builder prune -af || true
 
             echo "📊 Disk space:"
             df -h /
 
             # ================================
-            # 🔨 Build (sequential)
+            # 🔨 BUILD SERVICES
             # ================================
             echo "🔨 Building services..."
 
             for svc in schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service api-gateway frontend; do
               echo "📦 Building $svc..."
+
               dc build "$svc" || {
                 echo "⚠️ Retry $svc..."
-                docker builder prune -af || true
+                sudo docker builder prune -af || true
                 dc build "$svc"
               }
             done
 
             # ================================
-            # 🚀 Run
+            # 🚀 START SERVICES
             # ================================
-            echo "🚀 Starting services..."
+            echo "🚀 Starting containers..."
             dc up -d --no-build
 
             sleep 15
 
             # ================================
-            # 📊 Status
+            # 📊 STATUS
             # ================================
             echo "📊 Containers:"
-            docker ps -a
+            sudo docker ps -a
 
-            echo "📈 Usage:"
-            docker system df
+            echo "📈 System usage:"
+            sudo docker system df
 
             # ================================
-            # 🔍 Debug failures
+            # 🔍 FAIL CHECK
             # ================================
-            FAILED=$(docker ps -a --filter "status=exited" --format "{{.Names}}")
+            FAILED=$(sudo docker ps -a --filter "status=exited" --format "{{.Names}}")
 
             if [ ! -z "$FAILED" ]; then
-              echo "⚠️ Failed containers:"
+              echo "⚠️ Failed containers detected:"
               for c in $FAILED; do
                 echo "==== $c logs ===="
-                docker logs --tail 20 $c
+                sudo docker logs --tail 20 $c
               done
               exit 1
             fi
 
-            echo "🎉 Deployment successful!"
-
-            EONG
+            echo "🎉 DEPLOYMENT SUCCESSFUL"
